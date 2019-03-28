@@ -21,7 +21,7 @@ MAPALL(VERIFY,DEBUG)
  S U="^"
  ; Clean up SQLI mapping information
  ; Insert Keywords, Purge & Perform SQLI Mapping
- D KW ;,ALLF^DMSQF(1)
+ D KW,ALLF^DMSQF(1)
  N FILE,TABLEIEN,LINE,ERRORCOUNT
  S ERRORCOUNT=0
  ; Use SQLI_TABLE file (#1.5215) to get table mappings
@@ -32,20 +32,13 @@ MAPALL(VERIFY,DEBUG)
  . D MAPTABLE(TABLEIEN,,LINE)
  . I VERIFY D
  . . D VERIFY^KBBOSQLT(FILE,1)
- ;. open "vista-"_FILE_".sql":(newversion)
- ;. use "vista-"_FILE_".sql"
- ;. d OUTPUT(FILE)
- ;. close "vista-"_FILE_".sql"
  W "Error count: ",ERRORCOUNT
+ ;
+ ; TODO: change this to use VistA IO utils
  open "vista-new.sql":(newversion)
  use "vista-new.sql"
  D OUTPUT
  close "vista-new.sql"
- ;
- ; open "DDL.zwr":(newversion)
- ; use "DDL.zwr"
- ; zwrite DDL
- ; close "DDL.zwr"
  QUIT
  ;
 MAPONE(FILE,DEBUG)
@@ -58,7 +51,13 @@ MAPONE(FILE,DEBUG)
  D KW,RUNONE^DMSQ(FILE)
  S LINE=1
  D MAPTABLE(TABLEIEN,LINE)
+ W "Error count: ",ERRORCOUNT
+ ;
+ ; TODO: change this to use VistA IO utils
+ open "vista-new.sql":(newversion)
+ use "vista-new.sql"
  D OUTPUT
+ close "vista-new.sql"
  QUIT
  ;
  ; Populate Keywords used by octo to SQLI
