@@ -290,6 +290,19 @@ COMPEXP(FILE,FIELD,D0,D1,D2,D3,D4)
  ; TODO: don't use $P here, use something else to get the rest of the line
  X $P(^DD(FILE,FIELD,0),U,5,9999999)
  QUIT X
+ ;
+ ; SQL Functions for VistA
+REPLACE(STRING,TOKEN,WITH)
+ N LOCATION,RETURN,BEGIN
+ S (LOCATION,BEGIN)=0
+ S RETURN=""
+ F  Q:LOCATION=""  D
+ . S LOCATION=$F(STRING,TOKEN,BEGIN)
+ . I LOCATION=0 S LOCATION="" S RETURN=RETURN_$E(STRING,BEGIN,$L(STRING)) Q
+ . S RETURN=RETURN_$E(STRING,BEGIN,(LOCATION-$L(TOKEN)-1))_WITH
+ . W RETURN,!
+ . S BEGIN=LOCATION
+ QUIT RETURN
 keywords
  ;;ALL
  ;;AND
@@ -298,6 +311,7 @@ keywords
  ;;AVG
  ;;BY
  ;;BEGIN
+ ;;CASE
  ;;CASCADE
  ;;CHAR
  ;;CHARACTER
@@ -318,6 +332,7 @@ keywords
  ;;DISTINCT
  ;;DROP
  ;;END
+ ;;ELSE
  ;;EXCEPT
  ;;EXTRACT
  ;;FALSE
@@ -338,6 +353,7 @@ keywords
  ;;KEY
  ;;LEFT
  ;;MAX
+ ;;MATCH
  ;;MIN
  ;;NATURAL
  ;;NOT
@@ -357,6 +373,7 @@ keywords
  ;;SUM
  ;;TABLE
  ;;TRUE
+ ;;THEN
  ;;UNION
  ;;UNIQUE
  ;;UNKNOWN
