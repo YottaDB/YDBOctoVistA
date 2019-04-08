@@ -280,12 +280,6 @@ GETTYPE(ELEMENTIEN,COLUMNIEN)
 COMPEXP(FILE,FIELD,D0,D1,D2,D3,D4)
  N U,DT,X,Y,KEY,I,TABLENAME,FIELDNAME
  S U="^"
- open "compexp":(newversion)
- use "compexp"
- ZWRITE
- W "EXPRESSION:",!,$P(^DD(FILE,FIELD,0),U,5,9999999)
- close "compexp"
- ;S D0=vsql(2)
  S DT=$P($$NOW^XLFDT,".",1)
  ; TODO: don't use $P here, use something else to get the rest of the line
  X $P(^DD(FILE,FIELD,0),U,5,9999999)
