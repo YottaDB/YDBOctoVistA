@@ -15,9 +15,10 @@
 ;
 %YDBOCTOVISTAM ; YDB/CJE - Octo-VistA SQL Mapper ;2019-03-20
  ;;1.0;KBBOSQL;**1**;Mar 20, 2019;Build 1
-MAPALL(VERIFY,DEBUG)
+MAPALL(PATH,VERIFY,DEBUG)
  S DEBUG=$G(DEBUG)
  S VERIFY=$G(VERIFY)
+ I '$L($G(PATH)) W "Error: Path argument is invalid" QUIT
  S U="^"
  ; Clean up SQLI mapping information
  ; Insert Keywords, Purge & Perform SQLI Mapping
@@ -35,15 +36,16 @@ MAPALL(VERIFY,DEBUG)
  W "Error count: ",ERRORCOUNT
  ;
  ; TODO: change this to use VistA IO utils
- open "vista-new.sql":(newversion)
- use "vista-new.sql"
+ open PATH:(newversion)
+ use PATH
  D OUTPUT
- close "vista-new.sql"
+ close PATH
  QUIT
  ;
-MAPONE(FILE,DEBUG)
+MAPONE(PATH,FILE,DEBUG)
  S DEBUG=$G(DEBUG)
- I '$G(FILE) W "Error: File argument is invalid" QUIT
+ I '$L($G(FILE)) W "Error: File argument is invalid" QUIT
+ I '$L($G(PATH)) W "Error: Path argument is invalid" QUIT
  N TABLEIEN,LINE
  S TABLEIEN=$O(^DMSQ("T","C",FILE,""))
  ; Clean up SQLI mapping information
@@ -54,10 +56,10 @@ MAPONE(FILE,DEBUG)
  W "Error count: ",ERRORCOUNT
  ;
  ; TODO: change this to use VistA IO utils
- open "vista-new.sql":(newversion)
- use "vista-new.sql"
+ open PATH:(newversion)
+ use PATH
  D OUTPUT
- close "vista-new.sql"
+ close PATH
  QUIT
  ;
  ; Populate Keywords used by octo to SQLI
@@ -97,7 +99,7 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  S TABLEGLOBALLOCATION=$$ESCAPEQUOTES(TABLEGLOBALLOCATION)
  ;
  ; Add the CREATE TABLE opening information
- S DDL(FILE,LINE)="CREATE TABLE "_$S(SCHEMA:"SQLI.",1:"")_TABLENAME_"(",LINE=LINE+1
+ S DDL(FILE,LINE)="CREATE TABLE `"_$S(SCHEMA:"SQLI.",1:"")_TABLENAME_"`(",LINE=LINE+1
  ;
  ; Process Primary Keys first and replace the {K} tokens with real references to keys
  ; We will only have one entry per table for the Primary Key entry
@@ -168,7 +170,7 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . S COLUMNSQLTYPE=$$GETTYPE(ELEMENTIEN,COLUMNIEN)
  . . ;
  . . ; Add the first part to the output "PATIENT_NAME CHARACTER"
- . . S DDL(FILE,LINE)=" "_COLUMNNAME_" "_COLUMNSQLTYPE
+ . . S DDL(FILE,LINE)=" `"_COLUMNNAME_"` "_COLUMNSQLTYPE
  . . ;
  . . ; TODO: Need to figure out how to pull in primary key information and ensure the columns are in the create table statement
  . . ;
@@ -279,6 +281,8 @@ GETTYPE(ELEMENTIEN,COLUMNIEN)
  ; Convert computed expressions to be an extrinsic function
 COMPEXP(FILE,FIELD,D0,D1,D2,D3,D4)
  N U,DT,X,Y,KEY,I,TABLENAME,FIELDNAME
+ ; Setup min variables for FileMan
+ ; S DIQUIET=1 D DT^DICRW
  S U="^"
  S DT=$P($$NOW^XLFDT,".",1)
  ; TODO: don't use $P here, use something else to get the rest of the line

@@ -29,17 +29,17 @@ Both utilities require that you have a `DUZ` set to allow modification of the SQ
 To map all VistA FileMan Files run the following command:
 
 ```
-YDB>D MAPALL^%YDBOCTOVISTAM
+YDB>D MAPALL^%YDBOCTOVISTAM("vista.sql")
 ```
 
-This will create a file in the current directory named `vista-new.sql` that can be used with Octo to generate a mapping between Octo/SQL and FileMan files.
+This will create a file in the current directory named `vista.sql` that can be used with Octo to generate a mapping between Octo/SQL and FileMan files. You can change the `vista.sql` argument to another filename or complete file path if required.
 
 ### Mapping a Single VistA File
 
 To map a single VistA FileMan File run the following command:
 
 ```
-YDB>MAPONE^%YDBOCTOVISTAM(FileNumber)
+YDB>MAPONE^%YDBOCTOVISTAM("vista.sql",FileNumber)
 ```
 
-This will create a file in the current directory named `vista-new.sql` that can be used with Octo to generate a mapping between Octo/SQL and the selected FileMan file.
+This will create a file in the current directory named `vista.sql` that can be used with Octo to generate a mapping between Octo/SQL and FileMan files. You can change the `vista.sql` argument to another filename or complete file path if required.
