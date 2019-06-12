@@ -138,7 +138,7 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . S END=$E(^DMSQ("P",PRIMARYKEYIEN,1),1,$G(^DD("STRING_LIMIT"),245))
  . . ;
  . . ; Create the statment for this column
- . . S DDL(FILE,LINE)=" "_SQLCOLUMNNAME_" "_COLUMNSQLTYPE
+ . . S DDL(FILE,LINE)=" `"_SQLCOLUMNNAME_"` "_COLUMNSQLTYPE
  . . ;
  . . ; Identify this column as a (PRIMARY) KEY
  . . I ORDER=1 S DDL(FILE,LINE)=DDL(FILE,LINE)_" PRIMARY KEY"
