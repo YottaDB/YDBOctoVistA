@@ -52,7 +52,7 @@ MAPONE(PATH,FILE,DEBUG)
  ; Insert Keywords, Purge & Perform SQLI Mapping
  D KW,RUNONE^DMSQ(FILE)
  S LINE=1
- D MAPTABLE(TABLEIEN,LINE)
+ D MAPTABLE(TABLEIEN,,LINE)
  W "Error count: ",ERRORCOUNT
  ;
  ; TODO: change this to use VistA IO utils
@@ -93,7 +93,7 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  S TABLENAME=$P(^DMSQ("T",TABLEIEN,0),U,1)
  ;
  ; Get the global location
- S TABLEGLOBALLOCATION=$E(^DMSQ("T",TABLEIEN,1),1,245)
+ S TABLEGLOBALLOCATION=$E(^DMSQ("T",TABLEIEN,1),1,$G(^DD("STRING_LIMIT"),245))
  ;
  ; Escape Quotes in the global location
  S TABLEGLOBALLOCATION=$$ESCAPEQUOTES(TABLEGLOBALLOCATION)
@@ -131,11 +131,11 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . S LOCATION=$F(TABLEGLOBALLOCATION,"{K}")
  . . I LOCATION=0 W "ERROR: More keys defined than placeholders" B
  . . ; subtract 4 as LOCATION is one past the length of the FIND string
- . . S TABLEGLOBALLOCATION=$E(TABLEGLOBALLOCATION,0,LOCATION-4)_"keys("_DBLQUOTE_SQLCOLUMNNAME_DBLQUOTE_")"_$E(TABLEGLOBALLOCATION,LOCATION,245)
+ . . S TABLEGLOBALLOCATION=$E(TABLEGLOBALLOCATION,0,LOCATION-4)_"keys("_DBLQUOTE_SQLCOLUMNNAME_DBLQUOTE_")"_$E(TABLEGLOBALLOCATION,LOCATION,$G(^DD("STRING_LIMIT"),245))
  . . ;
  . . ; Get where we need to start our loop from:
  . . S START=$P(^DMSQ("P",PRIMARYKEYIEN,0),U,4)
- . . S END=$E(^DMSQ("P",PRIMARYKEYIEN,1),1,245)
+ . . S END=$E(^DMSQ("P",PRIMARYKEYIEN,1),1,$G(^DD("STRING_LIMIT"),245))
  . . ;
  . . ; Create the statment for this column
  . . S DDL(FILE,LINE)=" "_SQLCOLUMNNAME_" "_COLUMNSQLTYPE
@@ -183,7 +183,7 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . ;
  . . ; Global
  . . I COLUMNTYPE'="P" D
- . . . S COLUMNGLOBAL=$$ESCAPEQUOTES($E($G(^DMSQ("C",COLUMNIEN,1)),1,245))
+ . . . S COLUMNGLOBAL=$$ESCAPEQUOTES($E($G(^DMSQ("C",COLUMNIEN,1)),1,$G(^DD("STRING_LIMIT"),245)))
  . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_" GLOBAL "_QUOTE_TABLEOPENGLOBAL_COLUMNGLOBAL_QUOTE
  . . . ;
  . . . ; Piece/$EXTRACT
@@ -203,14 +203,14 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . . . ; For whatever reason Word Processing fields aren't processed correctly
  . . . . ; Project this as a $EXTRACT for the whole global node
  . . . . I FMTYPE["W" D  Q
- . . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_" EXTRACT ""$E($G("_TABLEOPENGLOBAL_COLUMNGLOBAL_"),1,245)"""
+ . . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_" EXTRACT ""$E($G("_TABLEOPENGLOBAL_COLUMNGLOBAL_"),1,"_$G(^DD("STRING_LIMIT"),245)_")"""
  . . . . ; SubFiles are already mapped, skip this column
  . . . . ; TODO: use a different variable than ERROR here, ERROR does what I need, but this isn't really an error
  . . . . I +FMTYPE S ERROR=1 Q
  . . . . ; Computed fields need more logic to get the actual data
  . . . . I FMTYPE["C" D  Q
  . . . . . ; TODO: support computed multiples
- . . . . . I FMTYPE["Cm" Q
+ . . . . . I FMTYPE["Cm" W "Computed Multiple Found!",! Q
  . . . . . ; Add the first half of the EXTRACT command
  . . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_" EXTRACT ""$$COMPEXP^%YDBOCTOVISTAM("_FMFILE_","_FMFIELD
  . . . . . ; Loop through the Keys for this table and add them as arguments to COMPEXP
@@ -250,6 +250,33 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  S LINE=LINE+1
  QUIT
  ;
+GETTYPE(ELEMENTIEN,COLUMNIEN)
+ N COLUMNSQLTYPE,LENGTH
+ ; Get the SQL Data type (CHARACTER, INTEGER, ETC)
+ S COLUMNSQLTYPE=$P(^DMSQ("DT",$P(^DMSQ("DM",$P(^DMSQ("E",ELEMENTIEN,0),U,2),0),U,2),0),U,1)
+ ; Moment and memo aren't Standard SQL types
+ S COLUMNSQLTYPE=$S(COLUMNSQLTYPE="MOMENT":"DATE",COLUMNSQLTYPE="MEMO":"TEXT",1:COLUMNSQLTYPE)
+ ; TODO: PRIMARY_KEY and DATE aren't valid either
+ S COLUMNSQLTYPE=$S(COLUMNSQLTYPE="DATE":"CHARACTER(245)",COLUMNSQLTYPE="PRIMARY_KEY":"INTEGER",1:COLUMNSQLTYPE)
+ ; TODO: TIMESTAMP and TEXT aren't valid either
+ S COLUMNSQLTYPE=$S(COLUMNSQLTYPE="TIMESTAMP":"CHARACTER(245)",COLUMNSQLTYPE="TEXT":"VARCHAR("_$G(^DD("STRING_LIMIT"),245)_")",1:COLUMNSQLTYPE)
+ ; Get the default width of the Column for CHARACTER data types
+ I COLUMNSQLTYPE="CHARACTER" D
+ . S LENGTH=$P(^DMSQ("C",COLUMNIEN,0),U,2)
+ . I LENGTH="" W "WARNING: No length found for CHARACTER datatype defaulting to max",! S LENGTH=$G(^DD("STRING_LIMIT"),245)
+ . S COLUMNSQLTYPE=COLUMNSQLTYPE_"("_LENGTH_")"
+ QUIT COLUMNSQLTYPE
+ ;
+ ; Convert computed expressions to be an extrinsic function
+COMPEXP(FILE,FIELD,D0,D1,D2,D3,D4)
+ N U,DUZ,DT,X,Y,KEY,I,IO,TABLENAME,FIELDNAME
+ ; Setup min variables for FileMan
+ S DIQUIET=1 D DT^DICRW
+ ; TODO: don't use $P here, use something else to get the rest of the line
+ X $P(^DD(FILE,FIELD,0),U,5,9999999)
+ QUIT X
+ ;
+ ; Escape quotes for SQL DDL
 ESCAPEQUOTES(INPUT)
  N INDEX,DONE,QUOTE
  S (INDEX,DONE)=0
@@ -258,38 +285,11 @@ ESCAPEQUOTES(INPUT)
  . S INDEX=$F(INPUT,QUOTE,INDEX)
  . I INDEX=0 S DONE=1 Q
  . I $E(INPUT,INDEX-2)'=QUOTE D
- . . S INPUT=$E(INPUT,0,INDEX-1)_QUOTE_$E(INPUT,INDEX,245)
+ . . S INPUT=$E(INPUT,0,INDEX-1)_QUOTE_$E(INPUT,INDEX,$G(^DD("STRING_LIMIT"),245))
  QUIT INPUT
  ;
-GETTYPE(ELEMENTIEN,COLUMNIEN)
- N COLUMNSQLTYPE,LENGTH
- ; Get the SQL Data type (CHARACTER, INTEGER, ETC)
- S COLUMNSQLTYPE=$P(^DMSQ("DT",$P(^DMSQ("DM",$P(^DMSQ("E",ELEMENTIEN,0),U,2),0),U,2),0),U,1)
- ; Moment and memo aren't Standard SQL types
- S COLUMNSQLTYPE=$S(COLUMNSQLTYPE="MOMENT":"DATE",COLUMNSQLTYPE="MEMO":"TEXT",1:COLUMNSQLTYPE)
- ; TODO: PRIMARY_KEY and DATE aren't valid either
- S COLUMNSQLTYPE=$S(COLUMNSQLTYPE="DATE":"INTEGER",COLUMNSQLTYPE="PRIMARY_KEY":"INTEGER",1:COLUMNSQLTYPE)
- ; TODO: TIMESTAMP and TEXT aren't valid either
- S COLUMNSQLTYPE=$S(COLUMNSQLTYPE="TIMESTAMP":"INTEGER",COLUMNSQLTYPE="TEXT":"VARCHAR(245)",1:COLUMNSQLTYPE)
- ; Get the default width of the Column for CHARACTER data types
- I COLUMNSQLTYPE="CHARACTER" D
- . S LENGTH=$P(^DMSQ("C",COLUMNIEN,0),U,2)
- . I LENGTH="" W "WARNING: No length found for CHARACTER datatype defaulting to max",! S LENGTH=245
- . S COLUMNSQLTYPE=COLUMNSQLTYPE_"("_LENGTH_")"
- QUIT COLUMNSQLTYPE
- ;
- ; Convert computed expressions to be an extrinsic function
-COMPEXP(FILE,FIELD,D0,D1,D2,D3,D4)
- N U,DT,X,Y,KEY,I,TABLENAME,FIELDNAME
- ; Setup min variables for FileMan
- ; S DIQUIET=1 D DT^DICRW
- S U="^"
- S DT=$P($$NOW^XLFDT,".",1)
- ; TODO: don't use $P here, use something else to get the rest of the line
- X $P(^DD(FILE,FIELD,0),U,5,9999999)
- QUIT X
- ;
  ; SQL Functions for VistA
+ ; Replace a substring with another string
 REPLACE(STRING,TOKEN,WITH)
  N LOCATION,RETURN,BEGIN
  S (LOCATION,BEGIN)=0
@@ -298,7 +298,6 @@ REPLACE(STRING,TOKEN,WITH)
  . S LOCATION=$F(STRING,TOKEN,BEGIN)
  . I LOCATION=0 S LOCATION="" S RETURN=RETURN_$E(STRING,BEGIN,$L(STRING)) Q
  . S RETURN=RETURN_$E(STRING,BEGIN,(LOCATION-$L(TOKEN)-1))_WITH
- . W RETURN,!
  . S BEGIN=LOCATION
  QUIT RETURN
 keywords
