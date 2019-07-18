@@ -270,6 +270,7 @@ GETTYPE(ELEMENTIEN,COLUMNIEN)
  ; Convert computed expressions to be an extrinsic function
 COMPEXP(FILE,FIELD,D0,D1,D2,D3,D4)
  N U,DUZ,DT,X,Y,KEY,I,IO,TABLENAME,FIELDNAME
+ S Y=""
  ; Setup min variables for FileMan
  S DIQUIET=1 D DT^DICRW
  ; TODO: don't use $P here, use something else to get the rest of the line
