@@ -43,3 +43,55 @@ YDB>MAPONE^%YDBOCTOVISTAM("vista.sql",FileNumber)
 ```
 
 This will create a file in the current directory named `vista.sql` that can be used with Octo to generate a mapping between Octo/SQL and FileMan files. You can change the `vista.sql` argument to another filename or complete file path if required.
+
+
+# OCTO FUNCTIONS 
+
+Contained in _YDBOCTOVISTAF.m file. Copy to $ydbdist/plugin/r to use.  Simply embed in SQL code.
+
+Contains a number of functions written in mumps that serve as helpers to extend the SQL dialect for specific use cases as follows.
+
+`CURR_TIMESTAMP()` 
+
+Returns horolog datetime  or `CURR_TIMESTAMP("v")` returns Fileman Datetime -- VistA Specific
+
+`DATEFORMAT(value, formatcode)` 
+
+Formats datetime based on datetime type returns MM/DD/YYYY HH:MM:SS as default. Function Uses "5ZSP" for fileman dates unless formatcode is otherwise specified. If fileman date is detected function calls VA routine `$$FMTE^XLFDT(value,format)` to format
+
+`IFNULL(value, replacer)`	    
+
+Takes a passed field and replaces a null value with whatever is passes as the second argument
+
+`TOKEN(value, seperator, token#)`    
+
+Remapper for Mumps `$Piece` function 
+
+`Replace(value, finder, replacement)` 
+
+Takes any string and searches for the finder string to replace it with the replacement string, modified string is returned
+
+`SUBSTRING(value, start, range)`   
+
+Function returns a part of passed value staring at the position specified by start (2nd parameter), continuing for range (3rd parameter) or end of string whichever comes first
+
+`FMGET(file#, [field# or name] ,keys(1-6))` 
+
+VistA Fileman specific, uses VA Routine `$$GET1^DIQ` to take foreign keys (up to 6) and fetch a field from the specified file
+
+`LEFT(value, characters)`		
+
+Return left x characters from value
+
+`RIGHT(value, characters)`	
+
+Function returns right x characters from value
+
+`PATINDEX(value, searchstring)`	
+
+Function returns the position of the first occruence of search string in value
+
+`NUMBER(value)`
+
+Function returns the mumps equivalent of +value, numeric portion returned only
+
