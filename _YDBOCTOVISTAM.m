@@ -245,7 +245,7 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  S DDL(FILE,LINE)=")"
  S LINE=LINE+1
  ;
- S DDL(FILE,LINE)="GLOBAL "_QUOTE_TABLEGLOBALLOCATION_QUOTE
+ S DDL(FILE,LINE)="GLOBAL "_QUOTE_TABLEGLOBALLOCATION_QUOTE_" READONLY"
  S LINE=LINE+1
  ; DELIM will always be "^" as that is what FileMan uses by default
  ; Yes, some tables break FileMan conventions and store more data per column that FileMan has no idea about
