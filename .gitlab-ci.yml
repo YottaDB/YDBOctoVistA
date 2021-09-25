@@ -11,19 +11,11 @@
 #################################################################
 
 stages:
-  - build
-
-.make:
-  stage: build
-  artifacts:
-    paths:
-      - build/
-    expire_in: 1 month
-    when: always
+  - test
 
 commit-verify:
   image: ubuntu:20.04
-  stage: build
+  stage: test
   before_script:
     - apt-get update -qq && apt-get install -y -qq git wget gnupg
   script:
@@ -31,3 +23,11 @@ commit-verify:
     - wget https://gitlab.com/YottaDB/DB/YDB/-/raw/master/ci/commit_verify.sh
     - chmod +x commit_verify.sh
     - ./commit_verify.sh ci/needs_copyright.sh https://gitlab.com/YottaDB/DBMS/YDBOctoVistA
+
+test-vista-ddl:
+  image:
+    name: yottadb/octo-vehu:latest-master
+    entrypoint: [""] # override the default entry point, which starts VistA and Octo etc.
+  stage: test
+  script:
+    - ci/test.sh
