@@ -149,8 +149,7 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . E  S DDL(FILE,LINE)=DDL(FILE,LINE)_" KEY NUM "_(ORDER-1)
  . . ;
  . . ; Add how to iterate through the KEY
- . . ; TODO: figure out if END is anything else but '{K}
- . . S:END="'{K}" DDL(FILE,LINE)=DDL(FILE,LINE)_" START "_START_" END ""'(keys("""_QUOTE_SQLCOLUMNNAME_QUOTE_"""))!(keys("""_QUOTE_SQLCOLUMNNAME_QUOTE_""")="""""""")"","
+ . . S:END="'{K}" DDL(FILE,LINE)=DDL(FILE,LINE)_" START "_START_" ENDPOINT '$CHAR(0)',"
  . . S LINE=LINE+1
  ;
  ; Create an open global root for concatenation of column location later
