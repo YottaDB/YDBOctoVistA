@@ -49,4 +49,4 @@ cd YDBOcto/build
 # re-uses the SQL we generated.
 cp ~vehu/vista.sql .
 cmake3 -D TEST_VISTA=ON -D VISTA_ENV_FILE="~vehu/etc/env" ..
-bats -T bats_tests/test_vista.bats
+bats -T bats_tests/test_vista_database.bats

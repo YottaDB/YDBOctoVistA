@@ -204,9 +204,11 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . . . S FMFIELD=$P(^DMSQ("C",COLUMNIEN,0),U,6)
  . . . . S FMTYPE=$P(^DD(FMFILE,FMFIELD,0),U,2)
  . . . . ; For whatever reason Word Processing fields aren't processed correctly
- . . . . ; Project this as a $EXTRACT for the whole global node
- . . . . I FMTYPE["W" D  Q
- . . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_" EXTRACT ""$E($G("_TABLEOPENGLOBAL_COLUMNGLOBAL_"),1,"_$G(^DD("STRING_LIMIT"),245)_")"""
+ . . . . ; Get the whole global node using DELIM ""
+ . . . . ; More info on Word Processing fields at:
+ . . . . ; https://www.hardhats.org/fileman/u1/he_intro.htm#word (introduction)
+ . . . . ; https://www.hardhats.org/fileman/pm/gfs_4.htm (storage as a multiple; not mentioned explicitly on the link)
+ . . . . I FMTYPE["W" S DDL(FILE,LINE)=DDL(FILE,LINE)_" DELIM """"" Q
  . . . . ; SubFiles are already mapped, skip this column
  . . . . ; TODO: use a different variable than ERROR here, ERROR does what I need, but this isn't really an error
  . . . . I +FMTYPE S ERROR=1 Q
