@@ -1,5 +1,5 @@
 %YDBOCTOVISTAM ; YDB/CJE/SMH - Octo-VistA SQL Mapper ;2021-09-22
- ;;1.1;YOTTADB OCTO VISTA UTILITIES;;Sep 22, 2012
+ ;;1.2;YOTTADB OCTO VISTA UTILITIES;;Sep 22, 2012
  ;
  ; Copyright (c) 2019-2021 YottaDB LLC
  ;
@@ -47,14 +47,15 @@ MAPONE(PATH,FILE,DEBUG)
  S DEBUG=$G(DEBUG)
  I '$L($G(FILE)) W "Error: File argument is invalid" QUIT
  I '$L($G(PATH)) W "Error: Path argument is invalid" QUIT
- N TABLEIEN,LINE
+ N TABLEIEN,LINE,ERRORCOUNT
+ S ERRORCOUNT=0
  S TABLEIEN=$O(^DMSQ("T","C",FILE,""))
  ; Clean up SQLI mapping information
  ; Insert Keywords, Purge & Perform SQLI Mapping
  D KW,RUNONE^DMSQ(FILE)
  S LINE=1
  D MAPTABLE(TABLEIEN,,LINE)
- W "Error count: ",ERRORCOUNT
+ W !,"Error count: ",ERRORCOUNT
  ;
  ; TODO: change this to use VistA IO utils
  open PATH:(newversion)
@@ -178,6 +179,7 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . ; TODO: Need to figure out how to pull in primary key information and ensure the columns are in the create table statement
  . . ;
  . . ; No support for Foreign keys right now
+ . . ; TODO: Add support for Foreign Keys when implemented in YDBOcto#773
  . . E  I COLUMNTYPE="F" Q
  . . ;
  . . ; Determine if the column can be null
@@ -187,7 +189,6 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . ; Global
  . . I COLUMNTYPE'="P" D
  . . . S COLUMNGLOBAL=$$ESCAPEQUOTES($E($G(^DMSQ("C",COLUMNIEN,1)),1,$G(^DD("STRING_LIMIT"),245)))
- . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_" GLOBAL "_QUOTE_TABLEOPENGLOBAL_COLUMNGLOBAL_QUOTE
  . . . ;
  . . . ; Piece/$EXTRACT
  . . . S PIECE=""
@@ -195,7 +196,7 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . . S EXTRACTSTART=$P(^DMSQ("C",COLUMNIEN,0),U,12)
  . . . S EXTRACTEND=$P(^DMSQ("C",COLUMNIEN,0),U,13)
  . . . I $G(PIECE) D
- . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_" PIECE "_PIECE
+ . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_" GLOBAL "_QUOTE_TABLEOPENGLOBAL_COLUMNGLOBAL_QUOTE_" PIECE "_PIECE
  . . . I $G(EXTRACTSTART) D
  . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_" EXTRACT ""$E($G("_TABLEOPENGLOBAL_COLUMNGLOBAL_"),"_EXTRACTSTART_","_EXTRACTEND_")"""
  . . . I '$L(PIECE)&('$L(EXTRACTSTART)) D
@@ -208,16 +209,15 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . . . ; More info on Word Processing fields at:
  . . . . ; https://www.hardhats.org/fileman/u1/he_intro.htm#word (introduction)
  . . . . ; https://www.hardhats.org/fileman/pm/gfs_4.htm (storage as a multiple; not mentioned explicitly on the link)
- . . . . I FMTYPE["W" S DDL(FILE,LINE)=DDL(FILE,LINE)_" DELIM """"" Q
+ . . . . I FMTYPE["W" S DDL(FILE,LINE)=DDL(FILE,LINE)_" GLOBAL "_QUOTE_TABLEOPENGLOBAL_COLUMNGLOBAL_QUOTE_" DELIM """"" Q
  . . . . ; SubFiles are already mapped, skip this column
  . . . . ; TODO: use a different variable than ERROR here, ERROR does what I need, but this isn't really an error
  . . . . I +FMTYPE S ERROR=1 Q
  . . . . ; Computed fields need more logic to get the actual data
  . . . . I FMTYPE["C" D  Q
- . . . . . ; TODO: support computed multiples
- . . . . . I FMTYPE["Cm" W "Computed Multiple Found!",! Q
+ . . . . . I FMTYPE["Cm" S DDL(FILE,LINE)=DDL(FILE,LINE)_" EXTRACT ""$$COMPMUL^%YDBOCTOVISTAM("_FMFILE_","_FMFIELD
  . . . . . ; Add the first half of the EXTRACT command
- . . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_" EXTRACT ""$$COMPEXP^%YDBOCTOVISTAM("_FMFILE_","_FMFIELD
+ . . . . . E  S DDL(FILE,LINE)=DDL(FILE,LINE)_" EXTRACT ""$$COMPEXP^%YDBOCTOVISTAM("_FMFILE_","_FMFIELD
  . . . . . ; Loop through the Keys for this table and add them as arguments to COMPEXP
  . . . . . S ORDER="" 
  . . . . . F  S ORDER=$O(KEYCOLUMNSO(ORDER)) Q:ORDER=""  Q:ORDER'=+ORDER  D
@@ -257,6 +257,14 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  ;
 GETTYPE(ELEMENTIEN,COLUMNIEN)
  N COLUMNSQLTYPE,LENGTH
+ N FMFILE,FMFIELD,FMTYPE
+ ;
+ ; SQLI does not know about computed multiples; these don't have a limit, so just call them VARCHAR
+ S FMFILE=$P(^DMSQ("C",COLUMNIEN,0),U,5)
+ S FMFIELD=$P(^DMSQ("C",COLUMNIEN,0),U,6)
+ ; Primary Keys are virtual and don't have a field location; that's why we have this IF statement to check that we have a real field.
+ I FMFILE,FMFIELD,$P(^DD(FMFILE,FMFIELD,0),U,2)["Cm" Q "VARCHAR"
+ ;
  ; Get the SQL Data type (CHARACTER, INTEGER, ETC)
  S COLUMNSQLTYPE=$P(^DMSQ("DT",$P(^DMSQ("DM",$P(^DMSQ("E",ELEMENTIEN,0),U,2),0),U,2),0),U,1)
  ; Moment and memo aren't Standard SQL types
@@ -278,9 +286,22 @@ COMPEXP(FILE,FIELD,D0,D1,D2,D3,D4)
  S Y=""
  ; Setup min variables for FileMan
  S DIQUIET=1 D DT^DICRW
- ; TODO: don't use $P here, use something else to get the rest of the line
- X $P(^DD(FILE,FIELD,0),U,5,9999999)
+ X $P(^DD(FILE,FIELD,0),U,5,99)
  QUIT X
+ ;
+ ; Convert Computed Multiples to be an extrinsic function
+COMPMUL(FILE,FIELD,D0,D1,D2,D3,D4)
+ N U,DUZ,DT,X,Y,KEY,I,IO,TABLENAME,FIELDNAME,DICMX
+ ; Output variable that Fileman won't step on
+ N %YDBOUT S %YDBOUT=""
+ ; Setup min variables for FileMan
+ S DIQUIET=1 D DT^DICRW
+ ; Output variable for Computed Multiple
+ S DICMX="S %YDBOUT=%YDBOUT_X_$C(10)"
+ X $P(^DD(FILE,FIELD,0),U,5,99)
+ ; Remove last new line; no-op if nothing there
+ S $E(%YDBOUT,$L(%YDBOUT))=""
+ QUIT %YDBOUT
  ;
  ; Escape quotes for SQL DDL
 ESCAPEQUOTES(INPUT)
