@@ -44,9 +44,5 @@ popd
 
 # Add Run Octo VistA Tests
 cd YDBOcto/build
-# Copying the vista.sql below prevents the YDBOcto test code in
-# tests/test_vista.bats.in from downloading the master _YDBOCTOVISTAM and just
-# re-uses the SQL we generated.
-cp ~vehu/vista.sql .
-cmake3 -D TEST_VISTA=ON -D VISTA_ENV_FILE="~vehu/etc/env" ..
+cmake3 -D TEST_VISTA=ON -D TEST_VISTA_ENV_FILE="~vehu/etc/env" -D TEST_VISTA_INPUT_SQL="~vehu/vista.sql" ..
 bats -T bats_tests/test_vista_database.bats
