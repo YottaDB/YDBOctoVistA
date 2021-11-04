@@ -36,7 +36,6 @@ MAPALL(PATH,VERIFY,DEBUG)
  . . D VERIFY^KBBOSQLT(FILE,1)
  W "Error count: ",ERRORCOUNT
  ;
- ; TODO: change this to use VistA IO utils
  open PATH:(newversion)
  use PATH
  D OUTPUT
@@ -57,7 +56,6 @@ MAPONE(PATH,FILE,DEBUG)
  D MAPTABLE(TABLEIEN,,LINE)
  W !,"Error count: ",ERRORCOUNT
  ;
- ; TODO: change this to use VistA IO utils
  open PATH:(newversion)
  use PATH
  D OUTPUT
@@ -85,7 +83,7 @@ OUTPUT(FILE)
 MAPTABLE(TABLEIEN,SCHEMA,LINE)
  N ELEMENTIEN,COLUMNIEN,COLUMNTYPE,TABLENAME,COLUMNNAME,COLUMNSQLTYPE,KEY,DONE,PRIMARYKEYS,TABLEGLOBALLOCATION,QUOTE,DBLQUOTE
  N START,END,LOCATION,NOTNULL,PRIMARYKEYIEN,PIECE,EXTRACTSTART,EXTRACTEND,COLUMNGLOBAL,TABLEOPENGLOBAL,INDEX,KEYCOLUMNS
- N SQLCOLUMNNAME,SQLCOLUMNELEMENTIEN,SQLCOLUMNIEN,ORDER,ERROR,FMTYPE,FMFILE,FMFIELD,KEYCOLUMNNAME,KEYCOLUMNSO
+ N SQLCOLUMNNAME,SQLCOLUMNELEMENTIEN,SQLCOLUMNIEN,ORDER,ERROR,FMTYPE,FMFILE,FMFIELD,KEYCOLUMNNAME,KEYCOLUMNSO,ISSUBFILE
  S SCHEMA=+$G(SCHEMA)
  ; Convience variables for escaped quotes
  S QUOTE=""""
@@ -159,7 +157,7 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  ; Loop through the table elements for Foreign Keys (F) and Columns (C)
  S ELEMENTIEN="" F COLUMNTYPE="F","C" D
  . S ELEMENTIEN="" F  S ELEMENTIEN=$O(^DMSQ("E","F",TABLEIEN,COLUMNTYPE,ELEMENTIEN))  Q:ELEMENTIEN=""  D
- . . S ERROR=0
+ . . S (ERROR,ISSUBFILE)=0
  . . ; Don't process elements that are part of the primary key
  . . I $D(KEYCOLUMNS(ELEMENTIEN)) Q
  . . ;
@@ -175,8 +173,6 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . ;
  . . ; Add the first part to the output "PATIENT_NAME CHARACTER"
  . . S DDL(FILE,LINE)=" `"_COLUMNNAME_"` "_COLUMNSQLTYPE
- . . ;
- . . ; TODO: Need to figure out how to pull in primary key information and ensure the columns are in the create table statement
  . . ;
  . . ; No support for Foreign keys right now
  . . ; TODO: Add support for Foreign Keys when implemented in YDBOcto#773
@@ -211,8 +207,7 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . . . ; https://www.hardhats.org/fileman/pm/gfs_4.htm (storage as a multiple; not mentioned explicitly on the link)
  . . . . I FMTYPE["W" S DDL(FILE,LINE)=DDL(FILE,LINE)_" GLOBAL "_QUOTE_TABLEOPENGLOBAL_COLUMNGLOBAL_QUOTE_" DELIM """"" Q
  . . . . ; SubFiles are already mapped, skip this column
- . . . . ; TODO: use a different variable than ERROR here, ERROR does what I need, but this isn't really an error
- . . . . I +FMTYPE S ERROR=1 Q
+ . . . . I +FMTYPE S ISSUBFILE=1 Q
  . . . . ; Computed fields need more logic to get the actual data
  . . . . I FMTYPE["C" D  Q
  . . . . . I FMTYPE["Cm" S DDL(FILE,LINE)=DDL(FILE,LINE)_" EXTRACT ""$$COMPMUL^%YDBOCTOVISTAM("_FMFILE_","_FMFIELD
@@ -235,10 +230,10 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . . . S ERRORCOUNT=ERRORCOUNT+1
  . . . . S ERROR=1
  . . ;
- . . ; Add ending comma and increment the line for the next column
- . . S:'ERROR DDL(FILE,LINE)=DDL(FILE,LINE)_","
- . . S:'ERROR LINE=LINE+1
- . . K:ERROR DDL(FILE,LINE)
+ . . ; kill line if there's an error or it's a subfile, otherwise, add ending comma and increment the line for the next column
+ . . I ERROR!ISSUBFILE K DDL(FILE,LINE)
+ . . E  S DDL(FILE,LINE)=DDL(FILE,LINE)_",",LINE=LINE+1
+ ;
  ; Remove comma from last column line
  S:$E(DDL(FILE,LINE-1),$L(DDL(FILE,LINE-1)))="," DDL(FILE,LINE-1)=$E(DDL(FILE,LINE-1),0,$L(DDL(FILE,LINE-1))-1)
  ;
@@ -252,6 +247,9 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  ; Yes, some tables break FileMan conventions and store more data per column that FileMan has no idea about
  ; at the moment those parts are not important.
  S DDL(FILE,LINE)="DELIM ""^"";"
+ S LINE=LINE+1
+ ; Add empty line so that we can see where one table ends and another starts
+ S DDL(FILE,LINE)=""
  S LINE=LINE+1
  QUIT
  ;
@@ -269,9 +267,9 @@ GETTYPE(ELEMENTIEN,COLUMNIEN)
  S COLUMNSQLTYPE=$P(^DMSQ("DT",$P(^DMSQ("DM",$P(^DMSQ("E",ELEMENTIEN,0),U,2),0),U,2),0),U,1)
  ; Moment and memo aren't Standard SQL types
  S COLUMNSQLTYPE=$S(COLUMNSQLTYPE="MOMENT":"DATE",COLUMNSQLTYPE="MEMO":"TEXT",1:COLUMNSQLTYPE)
- ; TODO: PRIMARY_KEY and DATE aren't valid either
+ ; PRIMARY_KEY and DATE aren't valid either
  S COLUMNSQLTYPE=$S(COLUMNSQLTYPE="DATE":"NUMERIC",COLUMNSQLTYPE="PRIMARY_KEY":"NUMERIC",1:COLUMNSQLTYPE)
- ; TODO: TIMESTAMP and TEXT aren't valid either
+ ; TIMESTAMP and TEXT aren't valid either
  S COLUMNSQLTYPE=$S(COLUMNSQLTYPE="TIMESTAMP":"NUMERIC",COLUMNSQLTYPE="TEXT":"VARCHAR("_$G(^DD("STRING_LIMIT"),245)_")",1:COLUMNSQLTYPE)
  ; Get the default width of the Column for CHARACTER data types
  I COLUMNSQLTYPE="CHARACTER" D
