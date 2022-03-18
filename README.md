@@ -1,15 +1,11 @@
 # YDBVistAOcto
-
-This allows for mapping of VistA FileMan files to Octo SQL tables. Mapping is supported by FileMan's SQLI utilities.
-
-This is currently pre-release software, so there may be issues and incompleteness in the code.
+This allows for mapping of VistA FileMan files to Octo SQL tables. Mapping is
+supported by FileMan's SQLI utilities.
 
 # Installation
-
 ## Pre-requisites
 
- * YottaDB r1.26 is required for the Octo Field Test release
- * Octo must be installed
+ * YottaDB and Octo must be installed
 
 ## Routine Installation
 
@@ -22,76 +18,85 @@ The software has two modes of operation:
  1. Map all VistA files
  2. Map a selected VistA file
 
-Both utilities require that you have a `DUZ` set to allow modification of the SQLI Files for keywords and the SQLI mapping.
+Both utilities require that you have a `DUZ` set to allow modification of the SQLI Files for keywords and the SQLI mapping. The following examples can be copied and pasted; but you can adapt them if you already have a VistA symbol table properly set-up (e.g. by using `^XUP`).
 
 ## Mapping All VistA Files
 
 To map all VistA FileMan Files run the following command:
 
 ```
-YDB>D MAPALL^%YDBOCTOVISTAM("vista.sql")
+YDB>S DUZ=.5,DIQUIET=1,DUZ(0)="@" D DT^DICRW,MAPALL^%YDBOCTOVISTAM("vista.sql")
 ```
 
 This will create a file in the current directory named `vista.sql` that can be used with Octo to generate a mapping between Octo/SQL and FileMan files. You can change the `vista.sql` argument to another filename or complete file path if required.
 
-### Mapping a Single VistA File
+## Mapping a Single VistA File
 
-To map a single VistA FileMan File run the following command:
+This call requires a change to the DMSQ routine which is not supplied here. See
+https://gitlab.com/YottaDB/DBMS/YDBOctoVistA/-/issues/9.
+
+To map a single VistA FileMan File run the following command (shown with File
+200)
 
 ```
-YDB>MAPONE^%YDBOCTOVISTAM("vista.sql",FileNumber)
+YDB>S DUZ=.5,DIQUIET=1,DUZ(0)="@",FileNumber=200 D DT^DICRW,MAPONE^%YDBOCTOVISTAM("vista"_FileNumber_".sql",FileNumber)
 ```
 
-This will create a file in the current directory named `vista.sql` that can be used with Octo to generate a mapping between Octo/SQL and FileMan files. You can change the `vista.sql` argument to another filename or complete file path if required.
+This will create a file in the current directory named `vista200.sql` that can
+be used with Octo to generate a mapping between Octo/SQL and FileMan files. You
+can change the `vista200.sql` argument to another filename or complete file
+path if required.
 
+# OCTO Functions
+Contained in `_YDBOCTOVISTAF.m` file. Copy to your routines directory to use
+and then load `_YDBOCTOVISTAF.sql` to define the functions in Octo. After that,
+you should be able to embed the code in SQL.
 
-# OCTO FUNCTIONS 
+Contains a number of functions written in M that serve as helpers to extend
+the SQL dialect for specific use cases as follows.
 
-Contained in _YDBOCTOVISTAF.m file. Copy to $ydbdist/plugin/r to use.  Simply embed in SQL code.
+## Date Functions
+### `CURRTIMESTAMP/GETDATE(V/S/M)`
+Returns today's date/time. Without any arguments, returns today's date in the
+$HOROLOG format. V: Fileman Format. S: US Format. M: $HOROLOG format.
 
-Contains a number of functions written in mumps that serve as helpers to extend the SQL dialect for specific use cases as follows.
-
-`CURR_TIMESTAMP()` 
-
-Returns horolog datetime  or `CURR_TIMESTAMP("v")` returns Fileman Datetime -- VistA Specific
-
-`DATEFORMAT(value, formatcode)` 
-
+### `DATEFORMAT(value, formatcode)`
 Formats datetime based on datetime type returns MM/DD/YYYY HH:MM:SS as default. Function Uses "5ZSP" for fileman dates unless formatcode is otherwise specified. If fileman date is detected function calls VA routine `$$FMTE^XLFDT(value,format)` to format
 
-`IFNULL(value, replacer)`	    
+### `FMADD(Fileman Date 1, days, hours, minutes, seconds)`
+Call $$FMADD^XLFDT to add/subtract date/time to produce another Fileman date. See https://hardhats.org/kernel/html/x-fmadd-xlfdt.html for more information.
 
+### `FMDIFF(Fileman Date 1, Fileman Date 2, [1-3])`
+Call $$FMDIFF^XLFDT to return the difference between two Fileman dates. See https://hardhats.org/kernel/html/x-fmdiff-xlfdt.html for more information.
+
+### `FMNOW()`
+Call $$NOW^XLFDT to return the current date/time in Fileman Format. Can be combined with other FM\* date functions to calculate date differences.
+
+## String Functions
+### `IFNULL(value, replacer)`
 Takes a passed field and replaces a null value with whatever is passes as the second argument
 
-`TOKEN(value, seperator, token#)`    
-
-Remapper for Mumps `$Piece` function 
-
-`Replace(value, finder, replacement)` 
-
-Takes any string and searches for the finder string to replace it with the replacement string, modified string is returned
-
-`SUBSTRING(value, start, range)`   
-
-Function returns a part of passed value staring at the position specified by start (2nd parameter), continuing for range (3rd parameter) or end of string whichever comes first
-
-`FMGET(file#, [field# or name] ,keys(1-6))` 
-
-VistA Fileman specific, uses VA Routine `$$GET1^DIQ` to take foreign keys (up to 6) and fetch a field from the specified file
-
-`LEFT(value, characters)`		
-
+### `LEFTY(value, characters)`
 Return left x characters from value
 
-`RIGHT(value, characters)`	
-
-Function returns right x characters from value
-
-`PATINDEX(value, searchstring)`	
-
-Function returns the position of the first occruence of search string in value
-
-`NUMBER(value)`
-
+### `NUMBER(value)`
 Function returns the mumps equivalent of +value, numeric portion returned only
 
+### `PATINDEX(value, searchstring)`
+Function returns the position of the first occruence of search string in value
+
+### `REPLACE(value, finder, replacement)`
+Takes any string and searches for the finder string to replace it with the replacement string, modified string is returned
+
+### `RIGHTY(value, characters)`
+Function returns right x characters from value
+
+### `SUBSTRING(value, start, range)`
+Function returns a part of passed value staring at the position specified by start (2nd parameter), continuing for range (3rd parameter) or end of string whichever comes first
+
+### `TOKEN/MPIECE(value, seperator, token#)`
+Remapper for Mumps `$Piece` function
+
+## Fileman Related
+### `FMGET(file#, [field# or name] ,keys(1-6))`
+VistA Fileman specific, uses VA Routine `$$GET1^DIQ` to take foreign keys (up to 6) and fetch a field from the specified file
