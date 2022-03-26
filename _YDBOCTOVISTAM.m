@@ -1,7 +1,7 @@
-%YDBOCTOVISTAM ; YDB/CJE/SMH - Octo-VistA SQL Mapper ;2021-09-22
- ;;1.2;YOTTADB OCTO VISTA UTILITIES;;Sep 22, 2012
+%YDBOCTOVISTAM ; YDB/CJE/SMH - Octo-VistA SQL Mapper ;2022-03-25
+ ;;1.3;YOTTADB OCTO VISTA UTILITIES;;Sep 22, 2012
  ;
- ; Copyright (c) 2019-2021 YottaDB LLC
+ ; Copyright (c) 2019-2022 YottaDB LLC
  ;
  ; This program is free software: you can redistribute it and/or modify
  ; it under the terms of the GNU Affero General Public License as
@@ -264,7 +264,20 @@ GETTYPE(ELEMENTIEN,COLUMNIEN)
  I FMFILE,FMFIELD,$P(^DD(FMFILE,FMFIELD,0),U,2)["Cm" Q "VARCHAR"
  ;
  ; Get the SQL Data type (CHARACTER, INTEGER, ETC)
- S COLUMNSQLTYPE=$P(^DMSQ("DT",$P(^DMSQ("DM",$P(^DMSQ("E",ELEMENTIEN,0),U,2),0),U,2),0),U,1)
+ N DOMAINIEN  S DOMAINIEN=$P(^DMSQ("E",ELEMENTIEN,0),U,2)
+ N DOMAINNAME S DOMAINNAME=$P(^DMSQ("DM",DOMAINIEN,0),U,1)
+ N TYPEIEN    S TYPEIEN=$P(^DMSQ("DM",DOMAINIEN,0),U,2)
+ S COLUMNSQLTYPE=$P(^DMSQ("DT",TYPEIEN,0),U,1)
+ ;
+ ; SQLI has a bug where it says that all Pointers are Integers, which is not
+ ; correct. NEW PERSON has .5 and .6 IENs, and about 10 files have a .001 of a
+ ; Date, which may have a decimal point.
+ ; See 3^DMSQD and 13^DMSQD for the incorrect SQLI code.
+ ;
+ ; Right now, we don't plan on trying to maintain the SQLI package, so we will
+ ; work around it by hardcoding the type NUMERIC for Pointers.
+ I DOMAINNAME="POINTER" Q "NUMERIC"
+ ;
  ; Moment and memo aren't Standard SQL types
  S COLUMNSQLTYPE=$S(COLUMNSQLTYPE="MOMENT":"DATE",COLUMNSQLTYPE="MEMO":"TEXT",1:COLUMNSQLTYPE)
  ; PRIMARY_KEY and DATE aren't valid either
