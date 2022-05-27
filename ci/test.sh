@@ -1,7 +1,7 @@
 #!/bin/bash
 #################################################################
 #								#
-# Copyright (c) 2021 YottaDB LLC and/or its subsidiaries.	#
+# Copyright (c) 2021-2022 YottaDB LLC and/or its subsidiaries.	#
 # All rights reserved.						#
 #								#
 #	This source code contains the intellectual property	#
@@ -27,13 +27,10 @@ cd ~vehu
 source ~vehu/etc/env
 
 # Run DDL Generator
-$ydb_dist/yottadb -r %XCMD 'S DUZ=.5,DIQUIET=1,DUZ(0)="@" D DT^DICRW,MAPALL^%YDBOCTOVISTAM("vista.sql")'
+$gtm_dist/yottadb -r %XCMD 'S DUZ=.5,DIQUIET=1,DUZ(0)="@" D DT^DICRW,MAPALL^%YDBOCTOVISTAM("vista.sql")'
 
 # View a little of it for a spot check
 tail -100 vista.sql
-
-# Tune verbosity down (it's waaaay too verbose to see the entire DDL load of the VistA DDL print out)
-sed -i 's/verbosity = "INFO"/verbosity = "ERROR"/' octo.conf
 
 # Install BATS
 pushd /tmp/
@@ -42,7 +39,10 @@ cd bats-core
 ./install.sh /usr/local
 popd
 
-# Add Run Octo VistA Tests
+# Get Octo and run Octo VistA Tests
+pushd /tmp/
+git clone https://gitlab.com/YottaDB/DBMS/YDBOcto.git
+mkdir YDBOcto/build
 cd YDBOcto/build
 cmake3 -D TEST_VISTA=ON -D TEST_VISTA_ENV_FILE="~vehu/etc/env" -D TEST_VISTA_INPUT_SQL="~vehu/vista.sql" ..
 bats -T bats_tests/test_vista_database.bats
