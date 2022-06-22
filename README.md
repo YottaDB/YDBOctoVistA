@@ -11,7 +11,7 @@ supported by FileMan's SQLI utilities.
 
 Copy the `_YDBOCTOVISTAM.m` routine into your routines directory.
 
-# Running
+## Running
 
 The software has two modes of operation:
 
@@ -46,6 +46,11 @@ This will create a file in the current directory named `vista200.sql` that can
 be used with Octo to generate a mapping between Octo/SQL and FileMan files. You
 can change the `vista200.sql` argument to another filename or complete file
 path if required.
+
+## Troubleshooting
+If you get a crash at `SETOF+3^DMSQD`, this is caused by bad Fileman Data
+Dictionaries sent in patch `ECX*3.0*178`. See
+https://gitlab.com/YottaDB/DBMS/YDBOctoVistA/-/issues/26 for how to fix this.
 
 # OCTO Functions
 Contained in `_YDBOCTOVISTAF.m` file. Copy to your routines directory to use
