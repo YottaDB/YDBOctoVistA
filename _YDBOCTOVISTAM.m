@@ -1,5 +1,5 @@
-%YDBOCTOVISTAM ; YDB/CJE/SMH - Octo-VistA SQL Mapper ;2022-03-25
- ;;1.5;YOTTADB OCTO VISTA UTILITIES;;Sep 22, 2012
+%YDBOCTOVISTAM ; YDB/CJE/SMH - Octo-VistA SQL Mapper ;7/26/2022
+ ;;1.6;YOTTADB OCTO VISTA UTILITIES;;Sep 22, 2012
  ;
  ; Copyright (c) 2019-2022 YottaDB LLC
  ;
@@ -310,12 +310,16 @@ GETTYPE(ELEMENTIEN,COLUMNIEN)
  ;
  ; Right now, we don't plan on trying to maintain the SQLI package, so we will
  ; work around it by hardcoding the type NUMERIC for Pointers.
- I DOMAINNAME="POINTER" Q "NUMERIC"
+ ; 
+ ; 2022-06-27
+ ; However, now due to https://gitlab.com/YottaDB/DBMS/YDBOcto/-/issues/846,
+ ; it is thought best to keep Pointers as integers, so now the next line is commented out
+ ; I DOMAINNAME="POINTER" Q "NUMERIC"
  ;
  ; Moment and memo aren't Standard SQL types
  S COLUMNSQLTYPE=$S(COLUMNSQLTYPE="MOMENT":"DATE",COLUMNSQLTYPE="MEMO":"TEXT",1:COLUMNSQLTYPE)
  ; PRIMARY_KEY and DATE aren't valid either
- S COLUMNSQLTYPE=$S(COLUMNSQLTYPE="DATE":"NUMERIC",COLUMNSQLTYPE="PRIMARY_KEY":"NUMERIC",1:COLUMNSQLTYPE)
+ S COLUMNSQLTYPE=$S(COLUMNSQLTYPE="DATE":"NUMERIC",COLUMNSQLTYPE="PRIMARY_KEY":"INTEGER",1:COLUMNSQLTYPE)
  ; TIMESTAMP and TEXT aren't valid either
  S COLUMNSQLTYPE=$S(COLUMNSQLTYPE="TIMESTAMP":"NUMERIC",COLUMNSQLTYPE="TEXT":"VARCHAR("_$G(^DD("STRING_LIMIT"),245)_")",1:COLUMNSQLTYPE)
  ; Get the default width of the Column for CHARACTER data types
