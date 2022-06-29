@@ -1,5 +1,5 @@
-%YDBOCTOVISTAM ; YDB/CJE/SMH - Octo-VistA SQL Mapper ;7/26/2022
- ;;1.6;YOTTADB OCTO VISTA UTILITIES;;Sep 22, 2012
+%YDBOCTOVISTAM ; YDB/CJE/SMH - Octo-VistA SQL Mapper ;2022-07-26
+ ;;1.7;YOTTADB OCTO VISTA UTILITIES;;Sep 22, 2012
  ;
  ; Copyright (c) 2019-2022 YottaDB LLC
  ;
@@ -219,12 +219,39 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . . ;
  . . . I PIECE D
  . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_" GLOBAL "_QUOTE_TABLEOPENGLOBAL_COLUMNGLOBAL_QUOTE_" PIECE "_PIECE
+ . . . . ;
  . . . . I FMTYPE["D",EXTDATE D  ; Date, emit external dates if requested
  . . . . . ; Close previous DDL column, and add a new one
  . . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_",",LINE=LINE+1
  . . . . . ; Add External Date
  . . . . . ; 25 is the length of the maximum date "2015-02-07T13:28:17+02:00"
  . . . . . S DDL(FILE,LINE)=" `"_COLUMNNAME_"_E` CHARACTER(25) EXTRACT ""$$FHIRDATE^%YDBOCTOVISTAM($P($G("_TABLEOPENGLOBAL_COLUMNGLOBAL_"),""""^"""","_PIECE_"))"""
+ . . . . ;
+ . . . . I FMTYPE["V" DO  ; Variable pointer
+ . . . . . ; WRITE !,"DD's with variable pointers: ",FMFILE," ",FMFIELD,!
+ . . . . . N VFILES ; List to track files already visited
+ . . . . .          ; This is because Fileman can point to the same file twice, but with different screens to display different contents
+ . . . . .          ; We only read the data, so we don't need to worry about these screens, because the file is still the same
+ . . . . .          ; This problem only showed up in VEHU on File 363.2, which pointed to 363.21 twice with different screens
+ . . . . . N I FOR I=0:0 S I=$O(^DD(FMFILE,FMFIELD,"V",I)) Q:'I  D
+ . . . . . . N VNODE S VNODE=^DD(FMFILE,FMFIELD,"V",I,0)
+ . . . . . . ; Piece 1 is the file nubmer
+ . . . . . . ; Rest of pieces here: https://www.hardhats.org/fileman/pm/gfs_3c.htm
+ . . . . . . N VFILE S VFILE=$P(VNODE,U)
+ . . . . . . I $D(VFILES(VFILE)) QUIT
+ . . . . . . S VFILES(VFILE)=1
+ . . . . . . N DMSQTIEN S DMSQTIEN=$O(^DMSQ("T","C",VFILE,"")) Q:'DMSQTIEN  ; Q:... File does not exist in VistA
+ . . . . . . N DMSQTNAM S DMSQTNAM=$P(^DMSQ("T",DMSQTIEN,0),U)
+ . . . . . . N VROOT S VROOT=$$ROOT^DILFD(VFILE)  ; Root of File; see https://www.hardhats.org/fileman/pm/db_dlfd5.htm
+ . . . . . . ; Fileman does not store the root of the file with an ^, so remove that so we can compare them easily at runtime
+ . . . . . . S $E(VROOT)="" ; Remove ^
+ . . . . . . ; Close previous DDL column, and add a new one
+ . . . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_",",LINE=LINE+1
+ . . . . . . ; Add Variable pointer column
+ . . . . . . S DDL(FILE,LINE)=" `"_COLUMNNAME_"_V_"_DMSQTNAM_"` INTEGER" ; Variable pointers are always integers
+ . . . . . . I NOTNULL S DDL(FILE,LINE)=DDL(FILE,LINE)_" NOT NULL"
+ . . . . . . ; WRITE $P(VNODE,U)," ",DMSQTNAM,!
+ . . . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_" EXTRACT ""$$VARPTR^%YDBOCTOVISTAM($P($G("_TABLEOPENGLOBAL_COLUMNGLOBAL_"),""""^"""","_PIECE_"),"""""_VROOT_""""")"""
  . . . ;
  . . . I EXTRACTSTART D
  . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_" EXTRACT ""$E($G("_TABLEOPENGLOBAL_COLUMNGLOBAL_"),"_EXTRACTSTART_","_EXTRACTEND_")"""
@@ -294,6 +321,7 @@ GETTYPE(ELEMENTIEN,COLUMNIEN)
  ; SQLI does not know about computed multiples; these don't have a limit, so just call them VARCHAR
  S FMFILE=$P(^DMSQ("C",COLUMNIEN,0),U,5)
  S FMFIELD=$P(^DMSQ("C",COLUMNIEN,0),U,6)
+ ;
  ; Primary Keys are virtual and don't have a field location; that's why we have this IF statement to check that we have a real field.
  I FMFILE,FMFIELD,$P(^DD(FMFILE,FMFIELD,0),U,2)["Cm" Q "VARCHAR"
  ;
@@ -384,6 +412,21 @@ FHIRDATE(FMDATE) ; Get FHIR date from Fileman date
  S FHIRDATE=FHIRDATE_$E(DATE,9,10)_":"_$E(DATE,11,12)_":"_$E(DATE,13,14) ; Time
  S FHIRDATE=FHIRDATE_TZDELIM_$E(TZ,1,2)_":"_$E(TZ,3,4) ; Timezone
  QUIT FHIRDATE
+ ;
+ ; Check that a variable pointer in a format like '34;DPT(' exists by doing a
+ ; $DATA(^DPT(34)). If it does, say that the record number is 34. If not,
+ ; return NULL.
+ ; NB: Not using $ZYSQLNULL, even though that is technically more correct. The reason
+ ; is that this code may be run on GT.M, not YottaDB, and $ZYSQLNULL is not available
+ ; on GT.M.
+VARPTR(DATUM,VROOT) ; Get Variable Pointer number
+ I DATUM="" Q ""
+ N ROOT S ROOT=$P(DATUM,";",2)
+ I VROOT'=ROOT Q ""
+ N IEN S IEN=$P(DATUM,";",1)
+ N DATAS S DATAS="^"_VROOT_IEN_")"
+ I $D(@DATAS) Q IEN
+ E  Q ""
  ;
  ; Escape quotes for SQL DDL
 ESCAPEQUOTES(INPUT)
