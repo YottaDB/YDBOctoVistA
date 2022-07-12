@@ -1,5 +1,5 @@
 %YDBOCTOVISTAM ; YDB/CJE/SMH - Octo-VistA SQL Mapper ;2022-03-25
- ;;1.4;YOTTADB OCTO VISTA UTILITIES;;Sep 22, 2012
+ ;;1.5;YOTTADB OCTO VISTA UTILITIES;;Sep 22, 2012
  ;
  ; Copyright (c) 2019-2022 YottaDB LLC
  ;
@@ -16,15 +16,21 @@
  ; You should have received a copy of the GNU Affero General Public License
  ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
  ;
-MAPALL(PATH,VERIFY,DEBUG)
- S DEBUG=$G(DEBUG)
- S VERIFY=$G(VERIFY)
+MAPALL(PATH,OPTIONS)
+ ; .OPTIONS:
+ ; - Debug = Debug flag (does nothing right now)
+ ; - ExternalDates = Create an extra field for each Fileman date in an external format
+ ;
  I '$L($G(PATH)) W "Error: Path argument is invalid" QUIT
+ ;
+ N DEBUG S DEBUG=$G(OPTIONS("Debug"))
+ N EXTDATE S EXTDATE=$G(OPTIONS("ExternalDates"))
+ ;
  S U="^"
  ; Clean up SQLI mapping information
  ; Insert Keywords, Purge & Perform SQLI Mapping
  D KW,ALLF^DMSQF(1)
- N FILE,TABLEIEN,LINE,ERRORCOUNT
+ N FILE,TABLEIEN,LINE,ERRORCOUNT,DDL
  S ERRORCOUNT=0
  ; Use SQLI_TABLE file (#1.5215) to get table mappings
  S FILE="" F  S FILE=$O(^DMSQ("T","C",FILE))  Q:FILE']""  D
@@ -32,8 +38,6 @@ MAPALL(PATH,VERIFY,DEBUG)
  . S LINE=1
  . ;
  . D MAPTABLE(TABLEIEN,,LINE)
- . I VERIFY D
- . . D VERIFY^KBBOSQLT(FILE,1)
  W "Error count: ",ERRORCOUNT
  ;
  open PATH:(newversion)
@@ -42,16 +46,22 @@ MAPALL(PATH,VERIFY,DEBUG)
  close PATH
  QUIT
  ;
-MAPONE(PATH,FILE,DEBUG)
- S DEBUG=$G(DEBUG)
- I '$L($G(FILE)) W "Error: File argument is invalid" QUIT
+MAPONE(PATH,FILE,OPTIONS) ; [Debug] Project one file only; to be used by developers only
+ ; .OPTIONS:
+ ; See above for documentation
  I '$L($G(PATH)) W "Error: Path argument is invalid" QUIT
- N TABLEIEN,LINE,ERRORCOUNT
+ N DEBUG S DEBUG=$G(OPTIONS("Debug"))
+ N EXTDATE S EXTDATE=$G(OPTIONS("ExternalDates"))
+ ;
+ S U="^"
+ N TABLEIEN,LINE,ERRORCOUNT,DDL
  S ERRORCOUNT=0
- S TABLEIEN=$O(^DMSQ("T","C",FILE,""))
+ ; Default to the question that will be asked in RUNONE^DMSQ
+ N DIR S DIR("B")=FILE
  ; Clean up SQLI mapping information
  ; Insert Keywords, Purge & Perform SQLI Mapping
- D KW,RUNONE^DMSQ(FILE)
+ D KW,RUNONE^DMSQ
+ S TABLEIEN=$O(^DMSQ("T","C",FILE,""))
  S LINE=1
  D MAPTABLE(TABLEIEN,,LINE)
  W !,"Error count: ",ERRORCOUNT
@@ -77,6 +87,16 @@ OUTPUT(FILE)
  S FILE=$G(FILE)
  I FILE=+FILE F  S I=$O(DDL(FILE,I)) Q:I=""  W DDL(FILE,I),!
  E  F  S FILE=$O(DDL(FILE)) Q:FILE=""  F  S I=$O(DDL(FILE,I)) Q:I=""  W DDL(FILE,I),!
+ QUIT
+ ;
+EXPORTONLY ; [Debug] Entry point for testing changes to MAPTABLE
+ ; Prior to calling this, you need to manually call D KW^%YDBOCTOVISTAM,ALLF^DMSQF(1)
+ N FILE,TABLEIEN,LINE,ERRORCOUNT
+ S ERRORCOUNT=0
+ S FILE="" F  S FILE=$O(^DMSQ("T","C",FILE))  Q:FILE']""  D
+ . S TABLEIEN=$O(^DMSQ("T","C",FILE,""))
+ . S LINE=1
+ . D MAPTABLE(TABLEIEN,,LINE)
  QUIT
  ;
  ; Map a Table
@@ -155,7 +175,7 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  S TABLEOPENGLOBAL=$E(TABLEGLOBALLOCATION,1,$L(TABLEGLOBALLOCATION)-1)
  ;
  ; Loop through the table elements for Foreign Keys (F) and Columns (C)
- S ELEMENTIEN="" F COLUMNTYPE="F","C" D
+ F COLUMNTYPE="F","C" D
  . S ELEMENTIEN="" F  S ELEMENTIEN=$O(^DMSQ("E","F",TABLEIEN,COLUMNTYPE,ELEMENTIEN))  Q:ELEMENTIEN=""  D
  . . S (ERROR,ISSUBFILE)=0
  . . ; Don't process elements that are part of the primary key
@@ -171,12 +191,12 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . ;
  . . S COLUMNSQLTYPE=$$GETTYPE(ELEMENTIEN,COLUMNIEN)
  . . ;
- . . ; Add the first part to the output "PATIENT_NAME CHARACTER"
+ . . ; Add the first part to the output e.g. PATIENT_NAME CHARACTER
  . . S DDL(FILE,LINE)=" `"_COLUMNNAME_"` "_COLUMNSQLTYPE
  . . ;
  . . ; No support for Foreign keys right now
  . . ; TODO: Add support for Foreign Keys when implemented in YDBOcto#773
- . . E  I COLUMNTYPE="F" Q
+ . . I COLUMNTYPE="F" Q
  . . ;
  . . ; Determine if the column can be null
  . . S NOTNULL=$P(^DMSQ("C",COLUMNIEN,0),U,7)
@@ -191,15 +211,24 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . . S PIECE=$P(^DMSQ("C",COLUMNIEN,0),U,11)
  . . . S EXTRACTSTART=$P(^DMSQ("C",COLUMNIEN,0),U,12)
  . . . S EXTRACTEND=$P(^DMSQ("C",COLUMNIEN,0),U,13)
- . . . I $G(PIECE) D
+ . . . ;
+ . . . ; Get FileMan data type for various uses below
+ . . . S FMFILE=$P(^DMSQ("C",COLUMNIEN,0),U,5)
+ . . . S FMFIELD=$P(^DMSQ("C",COLUMNIEN,0),U,6)
+ . . . S FMTYPE=$P(^DD(FMFILE,FMFIELD,0),U,2)
+ . . . ;
+ . . . I PIECE D
  . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_" GLOBAL "_QUOTE_TABLEOPENGLOBAL_COLUMNGLOBAL_QUOTE_" PIECE "_PIECE
- . . . I $G(EXTRACTSTART) D
+ . . . . I FMTYPE["D",EXTDATE D  ; Date, emit external dates if requested
+ . . . . . ; Close previous DDL column, and add a new one
+ . . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_",",LINE=LINE+1
+ . . . . . ; Add External Date
+ . . . . . ; 25 is the length of the maximum date "2015-02-07T13:28:17+02:00"
+ . . . . . S DDL(FILE,LINE)=" `"_COLUMNNAME_"_E` CHARACTER(25) EXTRACT ""$$FHIRDATE^%YDBOCTOVISTAM($P($G("_TABLEOPENGLOBAL_COLUMNGLOBAL_"),""""^"""","_PIECE_"))"""
+ . . . ;
+ . . . I EXTRACTSTART D
  . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_" EXTRACT ""$E($G("_TABLEOPENGLOBAL_COLUMNGLOBAL_"),"_EXTRACTSTART_","_EXTRACTEND_")"""
- . . . I '$L(PIECE)&('$L(EXTRACTSTART)) D
- . . . . ; Fallback and get FileMan data type
- . . . . S FMFILE=$P(^DMSQ("C",COLUMNIEN,0),U,5)
- . . . . S FMFIELD=$P(^DMSQ("C",COLUMNIEN,0),U,6)
- . . . . S FMTYPE=$P(^DD(FMFILE,FMFIELD,0),U,2)
+ . . . I '$L(PIECE),'$L(EXTRACTSTART) D
  . . . . ; For whatever reason Word Processing fields aren't processed correctly
  . . . . ; Get the whole global node using DELIM ""
  . . . . ; More info on Word Processing fields at:
@@ -318,6 +347,39 @@ COMPMUL(FILE,FIELD,D0,D1,D2,D3,D4)
  ; Remove last new line; no-op if nothing there
  S $E(%YDBOUT,$L(%YDBOUT))=""
  QUIT %YDBOUT
+ ;
+FHIRDATE(FMDATE) ; Get FHIR date from Fileman date
+ ; FHIR date is approx ISO 8601 date (aka Zulu), with allowances for inexact dates
+ ; Example Input:  3150207.132817
+ ; Example Output: 2015-02-07T13:28:17-05:00
+ Q:$G(FMDATE)="" ""
+ ;
+ I $L(FMDATE)<7 QUIT ""
+ ;
+ N FHIRDATE
+ ;
+ ; Date only
+ I $L(FMDATE)=7 DO  QUIT FHIRDATE
+ . S FHIRDATE=$E(FMDATE,1,3)+1700 ; year
+ . I $E(FMDATE,4,5)="00" QUIT  ; no month. quit.
+ . S FHIRDATE=FHIRDATE_"-"_$E(FMDATE,4,5) ; month
+ . I $E(FMDATE,6,7)="00" QUIT  ; no day. quit.
+ . S FHIRDATE=FHIRDATE_"-"_$E(FMDATE,6,7) ; day
+ ;
+ ; Handle date/time and timezone
+ N HL7DATE,DATE,TZ
+ S HL7DATE=$$FMTHL7^XLFDT(FMDATE) ; Sample output: 20220712175306-0500
+ I (HL7DATE="")!(HL7DATE=-1) QUIT ""
+ N TZDELIM S TZDELIM=$S(HL7DATE["+":"+",1:"-")
+ S DATE=$P(HL7DATE,TZDELIM,1)
+ S TZ=$P(HL7DATE,TZDELIM,2)
+ I $E(DATE,13,14)="" S $E(DATE,13,14)="00" ; HL7 API in VistA can omit seconds
+ S FHIRDATE=""
+ S FHIRDATE=FHIRDATE_$E(DATE,1,4)_"-"_$E(DATE,5,6)_"-"_$E(DATE,7,8) ; Date
+ S FHIRDATE=FHIRDATE_"T" ; T
+ S FHIRDATE=FHIRDATE_$E(DATE,9,10)_":"_$E(DATE,11,12)_":"_$E(DATE,13,14) ; Time
+ S FHIRDATE=FHIRDATE_TZDELIM_$E(TZ,1,2)_":"_$E(TZ,3,4) ; Timezone
+ QUIT FHIRDATE
  ;
  ; Escape quotes for SQL DDL
 ESCAPEQUOTES(INPUT)

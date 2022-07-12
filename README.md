@@ -30,16 +30,23 @@ YDB>S DUZ=.5,DIQUIET=1,DUZ(0)="@" D DT^DICRW,MAPALL^%YDBOCTOVISTAM("vista.sql")
 
 This will create a file in the current directory named `vista.sql` that can be used with Octo to generate a mapping between Octo/SQL and FileMan files. You can change the `vista.sql` argument to another filename or complete file path if required.
 
+`MAPALL` takes an optional 2nd parameter by reference for options. A currently
+supported option of `ExternalDates` is to add an extra field after each Fileman
+formatted date for that date presented in a ISO 8601 format, as in the
+following example:
+
+```
+YDB>S DUZ=.5,DIQUIET=1,DUZ(0)="@",O("ExternalDates")=1 D DT^DICRW,MAPALL^%YDBOCTOVISTAM("vista_ext_dates.sql",.O)
+```
+
 ## Mapping a Single VistA File
-
-This call requires a change to the DMSQ routine which is not supplied here. See
-https://gitlab.com/YottaDB/DBMS/YDBOctoVistA/-/issues/9.
-
-To map a single VistA FileMan File run the following command (shown with File
-200)
+To map a single VistA FileMan File run the following command (shown with File 200)
 
 ```
 YDB>S DUZ=.5,DIQUIET=1,DUZ(0)="@",FileNumber=200 D DT^DICRW,MAPONE^%YDBOCTOVISTAM("vista"_FileNumber_".sql",FileNumber)
+File or Subfile Number:  (.11-9999999.9201): 200// <enter>
+     Done.  See SQLI files for changes.
+     Error count: 0
 ```
 
 This will create a file in the current directory named `vista200.sql` that can
