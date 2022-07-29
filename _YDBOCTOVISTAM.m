@@ -1,5 +1,5 @@
-%YDBOCTOVISTAM ; YDB/CJE/SMH - Octo-VistA SQL Mapper ;2022-07-26
- ;;1.7;YOTTADB OCTO VISTA UTILITIES;;Sep 22, 2012
+%YDBOCTOVISTAM ; YDB/CJE/SMH - Octo-VistA SQL Mapper ;2022-07-29
+ ;;1.8;YOTTADB OCTO VISTA UTILITIES;;Sep 22, 2012
  ;
  ; Copyright (c) 2019-2022 YottaDB LLC
  ;
@@ -152,7 +152,8 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . ; There will be multiple "{K}" placeholders but since this loop goes through all keys in order we'll replace them
  . . ; as we go through the keys
  . . S LOCATION=$F(TABLEGLOBALLOCATION,"{K}")
- . . I LOCATION=0 W "ERROR: More keys defined than placeholders" B
+ . . ; NB: The following is not supposed to happen, and thus that's why we have an ASSERT. Previously, it was a BREAK command.
+ . . I LOCATION=0 W "ERROR: More keys defined than placeholders" S $ECODE=",U-ASSERT,"
  . . ; subtract 4 as LOCATION is one past the length of the FIND string
  . . S TABLEGLOBALLOCATION=$E(TABLEGLOBALLOCATION,0,LOCATION-4)_"keys("_DBLQUOTE_SQLCOLUMNNAME_DBLQUOTE_")"_$E(TABLEGLOBALLOCATION,LOCATION,$G(^DD("STRING_LIMIT"),245))
  . . ;
