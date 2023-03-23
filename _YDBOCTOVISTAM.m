@@ -1,7 +1,7 @@
 %YDBOCTOVISTAM ; YDB/CJE/SMH - Octo-VistA SQL Mapper ;2022-07-29
- ;;1.8;YOTTADB OCTO VISTA UTILITIES;;Sep 22, 2012
+ ;;1.9;YOTTADB OCTO VISTA UTILITIES;;Sep 22, 2012
  ;
- ; Copyright (c) 2019-2022 YottaDB LLC
+ ; Copyright (c) 2019-2023 YottaDB LLC
  ;
  ; This program is free software: you can redistribute it and/or modify
  ; it under the terms of the GNU Affero General Public License as
@@ -103,7 +103,7 @@ EXPORTONLY ; [Debug] Entry point for testing changes to MAPTABLE
 MAPTABLE(TABLEIEN,SCHEMA,LINE)
  N ELEMENTIEN,COLUMNIEN,COLUMNTYPE,TABLENAME,COLUMNNAME,COLUMNSQLTYPE,KEY,DONE,PRIMARYKEYS,TABLEGLOBALLOCATION,QUOTE,DBLQUOTE
  N START,END,LOCATION,NOTNULL,PRIMARYKEYIEN,PIECE,EXTRACTSTART,EXTRACTEND,COLUMNGLOBAL,TABLEOPENGLOBAL,INDEX,KEYCOLUMNS
- N SQLCOLUMNNAME,SQLCOLUMNELEMENTIEN,SQLCOLUMNIEN,ORDER,ERROR,FMTYPE,FMFILE,FMFIELD,KEYCOLUMNNAME,KEYCOLUMNSO,ISSUBFILE
+ N SQLCOLUMNNAME,SQLCOLUMNELEMENTIEN,SQLCOLUMNIEN,ORDER,ERROR,FMTYPE,FMFILE,FMFIELD,KEYCOLUMNNAMELC,KEYCOLUMNSO,ISSUBFILE
  S SCHEMA=+$G(SCHEMA)
  ; Convience variables for escaped quotes
  S QUOTE=""""
@@ -140,6 +140,8 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . S SQLCOLUMNIEN=$O(^DMSQ("P","D",PRIMARYKEYIEN,""))
  . . S SQLCOLUMNELEMENTIEN=$P(^DMSQ("C",SQLCOLUMNIEN,0),U,1)
  . . S SQLCOLUMNNAME=$P(^DMSQ("E",SQLCOLUMNELEMENTIEN,0),U,1)
+ . . ;  v1.9; Octo requires column keys to be in lower case as of #929 as all columns are stored in Octo in lower case to match Postgres
+ . . S SQLCOLUMNNAMELC=$$LOW^XLFSTR(SQLCOLUMNNAME)
  . . S COLUMNSQLTYPE=$$GETTYPE(ELEMENTIEN,SQLCOLUMNIEN)
  . . ;W "COLUMN: ",SQLCOLUMNNAME,!
  . . ;W "COLUMN TYPE: ",COLUMNSQLTYPE,!
@@ -155,7 +157,7 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . ; NB: The following is not supposed to happen, and thus that's why we have an ASSERT. Previously, it was a BREAK command.
  . . I LOCATION=0 W "ERROR: More keys defined than placeholders" S $ECODE=",U-ASSERT,"
  . . ; subtract 4 as LOCATION is one past the length of the FIND string
- . . S TABLEGLOBALLOCATION=$E(TABLEGLOBALLOCATION,0,LOCATION-4)_"keys("_DBLQUOTE_SQLCOLUMNNAME_DBLQUOTE_")"_$E(TABLEGLOBALLOCATION,LOCATION,$G(^DD("STRING_LIMIT"),245))
+ . . S TABLEGLOBALLOCATION=$E(TABLEGLOBALLOCATION,0,LOCATION-4)_"keys("_DBLQUOTE_SQLCOLUMNNAMELC_DBLQUOTE_")"_$E(TABLEGLOBALLOCATION,LOCATION,$G(^DD("STRING_LIMIT"),245))
  . . ;
  . . ; Get where we need to start our loop from:
  . . S START=$P(^DMSQ("P",PRIMARYKEYIEN,0),U,4)
@@ -273,8 +275,9 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . . . . ; Loop through the Keys for this table and add them as arguments to COMPEXP
  . . . . . S ORDER="" 
  . . . . . F  S ORDER=$O(KEYCOLUMNSO(ORDER)) Q:ORDER=""  Q:ORDER'=+ORDER  D
- . . . . . . S KEYCOLUMNNAME=$O(KEYCOLUMNSO(ORDER,""))
- . . . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_","_"keys("_DBLQUOTE_KEYCOLUMNNAME_DBLQUOTE_")"
+ . . . . . . ; v1.9: Octo requires column keys to be in lower case as of #929 as all columns are stored in Octo in lower case to match Postgres
+ . . . . . . S KEYCOLUMNNAMELC=$$LOW^XLFSTR($O(KEYCOLUMNSO(ORDER,"")))
+ . . . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_","_"keys("_DBLQUOTE_KEYCOLUMNNAMELC_DBLQUOTE_")"
  . . . . . ; Now close up the EXTRACT command
  . . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_")"""
  . . . . W "ERROR: No piece or extract defined for:",!
