@@ -104,7 +104,7 @@ Takes any string and searches for the finder string to replace it with the repla
 Function returns right x characters from value
 
 ### `SUBSTRING(value, start, range)`
-Function returns a part of passed value staring at the position specified by start (2nd parameter), continuing for range (3rd parameter) or end of string whichever comes first
+THIS FUNCTION IS NOW REMOVED AS IT IS AVAILABLE IN OCTO.
 
 ### `TOKEN/MPIECE(value, seperator, token#)`
 Remapper for Mumps `$Piece` function
