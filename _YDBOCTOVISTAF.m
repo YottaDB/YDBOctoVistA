@@ -16,6 +16,7 @@
  ; If fileman date is detected function calls VA routine $$FMTE^XLFDT(value,format) to format
 DATETIME(VALUE,FORMATSTRING)
  Q:$ZYISSQLNULL(VALUE) $ZYSQLNULL
+ I $ZYISSQLNULL(FORMATSTRING) S FORMATSTRING=""
  N FROM,TO,FORMAT
  S FROM=VALUE
  S FORMAT=$S($G(FORMATSTRING)="":"5ZSP",$G(FORMATSTRING)>"":$G(FORMATSTRING),1:"5ZSP")
@@ -27,6 +28,8 @@ DATETIME(VALUE,FORMATSTRING)
  ; VistA Fileman specific, uses VA Routine $$GET1^DIQ to take foreign keys (up to 7) 
  ; and fetch a field from the specified foreign key source
 FMGET(FILE,FIELD,D0,D1,D2,D3,D4,D5,D6)
+ Q:$ZYISSQLNULL(FILE) $ZYSQLNULL
+ Q:$ZYISSQLNULL(FIELD) $ZYSQLNULL
  Q:$ZYISSQLNULL(D0) $ZYSQLNULL
  Q:$ZYISSQLNULL(D1) $ZYSQLNULL
  Q:$ZYISSQLNULL(D2) $ZYSQLNULL
@@ -69,6 +72,8 @@ PATINDEX(VALUE,SEARCHSTRING)
  ; search VALUE for FROM which is replaced by TO
 REPLACE(VALUE,FROM,TO)
  Q:$ZYISSQLNULL(VALUE) $ZYSQLNULL
+ IF $ZYISSQLNULL(FROM) S FROM="" ; Octo passes '' as SQL NULL, which is not correct here, we are doing a string replace operation
+ IF $ZYISSQLNULL(TO) S TO=""     ; Octo passes '' as SQL NULL, which is not correct here.
  N SPEC S SPEC(FROM)=TO
  QUIT $$REPLACE^XLFSTR(VALUE,.SPEC)
  ;
