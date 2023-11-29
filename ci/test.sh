@@ -1,7 +1,7 @@
 #!/bin/bash
 #################################################################
 #								#
-# Copyright (c) 2021-2022 YottaDB LLC and/or its subsidiaries.	#
+# Copyright (c) 2021-2023 YottaDB LLC and/or its subsidiaries.	#
 # All rights reserved.						#
 #								#
 #	This source code contains the intellectual property	#
@@ -19,6 +19,8 @@ set -e # Below ensures any errors in this script cause it to exit with a non-zer
 
 # Copy DDL Generator file over to a directory in $ydb_routines
 cp _YDBOCTOVISTAM.m ~vehu/r/
+cp _YDBOCTOVISTAF.m ~vehu/r/
+cp _YDBOCTOVISTAF.sql ~vehu/
 
 # Go to instance home
 cd ~vehu
@@ -41,8 +43,15 @@ popd
 
 # Get Octo and run Octo VistA Tests
 pushd /tmp/
-git clone https://gitlab.com/YottaDB/DBMS/YDBOcto.git
+#git clone https://gitlab.com/YottaDB/DBMS/YDBOcto.git
+# TEMP - Remove me after merge of MR !37
+git clone https://gitlab.com/zylog1O1/YDBOcto.git --branch ydbocto382 --single-branch
+# END TEMP
 mkdir YDBOcto/build
 cd YDBOcto/build
-cmake3 -D TEST_VISTA=ON -D TEST_VISTA_ENV_FILE="~vehu/etc/env" -D TEST_VISTA_INPUT_SQL="~vehu/vista.sql" ..
+cmake3 -D TEST_VISTA=ON -D TEST_VISTA_ENV_FILE="~vehu/etc/env" -D TEST_VISTA_INPUT_F_SQL="~vehu/_YDBOCTOVISTAF.sql" -D TEST_VISTA_INPUT_SQL="~vehu/vista.sql" ..
+# REMOVE ME LATER
+make -j16
+make install
+# END REMOVE ME
 bats -T bats_tests/test_vista_database.bats
