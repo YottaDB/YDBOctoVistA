@@ -97,9 +97,6 @@ Function returns the mumps equivalent of +value, numeric portion returned only
 ### `PATINDEX(value, searchstring)`
 Function returns the position of the first occruence of search string in value
 
-### `REPLACE(value, finder, replacement)`
-Takes any string and searches for the finder string to replace it with the replacement string, modified string is returned
-
 ### `RIGHTY(value, characters)`
 Function returns right x characters from value
 

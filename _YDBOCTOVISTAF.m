@@ -2,7 +2,7 @@
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;                                                               ;
  ; Copyright (c) 2019 Chris Combs                                ;
- ; Copyright (c) 2023 YottaDB LLC and/or its subsidiaries.	 ;
+ ; Copyright (c) 2023-2024 YottaDB LLC and/or its subsidiaries.	 ;
  ; All rights reserved.                                          ;
  ;                                                               ;
  ;   This source code contains the intellectual property         ;
@@ -69,13 +69,6 @@ PATINDEX(VALUE,SEARCHSTRING)
  S POSITION=$F(VALUE,SEARCHSTRING)-$L(SEARCHSTRING)
  I POSITION<0 S POSITION=0
  QUIT POSITION
- ; search VALUE for FROM which is replaced by TO
-REPLACE(VALUE,FROM,TO)
- Q:$ZYISSQLNULL(VALUE) $ZYSQLNULL
- IF $ZYISSQLNULL(FROM) S FROM="" ; Octo passes '' as SQL NULL, which is not correct here, we are doing a string replace operation
- IF $ZYISSQLNULL(TO) S TO=""     ; Octo passes '' as SQL NULL, which is not correct here.
- N SPEC S SPEC(FROM)=TO
- QUIT $$REPLACE^XLFSTR(VALUE,.SPEC)
  ;
  ; returns current date time in three different formats specified by TYPE
  ; TYPE("V") = VA Fileman formatted current datetime
