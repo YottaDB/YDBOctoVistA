@@ -1,7 +1,7 @@
-%YDBOCTOVISTAM ; YDB/CJE/SMH - Octo-VistA SQL Mapper ;2022-07-29
- ;;1.9;YOTTADB OCTO VISTA UTILITIES;;Sep 22, 2012
+%YDBOCTOVISTAM ; YDB/CJE/SMH - Octo-VistA SQL Mapper ;2023-11-29
+ ;;1.10;YOTTADB OCTO VISTA UTILITIES;;Sep 22, 2012
  ;
- ; Copyright (c) 2019-2023 YottaDB LLC
+ ; Copyright (c) 2019-2024 YottaDB LLC
  ;
  ; This program is free software: you can redistribute it and/or modify
  ; it under the terms of the GNU Affero General Public License as
@@ -350,15 +350,26 @@ GETTYPE(ELEMENTIEN,COLUMNIEN)
  ;
  ; Moment and memo aren't Standard SQL types
  S COLUMNSQLTYPE=$S(COLUMNSQLTYPE="MOMENT":"DATE",COLUMNSQLTYPE="MEMO":"TEXT",1:COLUMNSQLTYPE)
- ; PRIMARY_KEY and DATE aren't valid either
- S COLUMNSQLTYPE=$S(COLUMNSQLTYPE="DATE":"NUMERIC",COLUMNSQLTYPE="PRIMARY_KEY":"INTEGER",1:COLUMNSQLTYPE)
- ; TIMESTAMP and TEXT aren't valid either
- S COLUMNSQLTYPE=$S(COLUMNSQLTYPE="TIMESTAMP":"NUMERIC",COLUMNSQLTYPE="TEXT":"VARCHAR("_$G(^DD("STRING_LIMIT"),245)_")",1:COLUMNSQLTYPE)
+ ; PRIMARY_KEY isn't valid either
+ S COLUMNSQLTYPE=$S(COLUMNSQLTYPE="PRIMARY_KEY":"INTEGER",1:COLUMNSQLTYPE)
+ ; TEXT isn't valid either
+ S COLUMNSQLTYPE=$S(COLUMNSQLTYPE="TEXT":"VARCHAR("_$G(^DD("STRING_LIMIT"),245)_")",1:COLUMNSQLTYPE)
  ; Get the default width of the Column for CHARACTER data types
  I COLUMNSQLTYPE="CHARACTER" D
  . S LENGTH=$P(^DMSQ("C",COLUMNIEN,0),U,2)
  . I LENGTH="" W "WARNING: No length found for CHARACTER datatype defaulting to max",! S LENGTH=$G(^DD("STRING_LIMIT"),245)
  . S COLUMNSQLTYPE=COLUMNSQLTYPE_"("_LENGTH_")"
+ ;
+ ; Convert Date column to Timestamp if the column could contain time
+ I COLUMNSQLTYPE="DATE",FMFILE,FMFIELD,$P(^DD(FMFILE,FMFIELD,0),U,5)["%DT=" D
+ . ; Input transform
+ . N IT S IT=$P(^DD(FMFILE,FMFIELD,0),U,5)
+ . ; Extract %DT string
+ . N QQ S QQ=$P($P(IT,"%DT=",2)," "),QQ=$P(QQ,",")
+ . ; Remove quotes
+ . N Q S Q=$E(QQ,2,$L(QQ)-1)
+ . I Q["T" S COLUMNSQLTYPE="TIMESTAMP(FILEMAN)"
+ . E  S COLUMNSQLTYPE="DATE(FILEMAN)"
  QUIT COLUMNSQLTYPE
  ;
  ; Convert computed expressions to be an extrinsic function
