@@ -1,5 +1,5 @@
-%YDBOCTOVISTAM ; YDB/CJE/SMH - Octo-VistA SQL Mapper ;2023-11-29
- ;;1.10;YOTTADB OCTO VISTA UTILITIES;;Sep 22, 2012
+%YDBOCTOVISTAM ; YDB/CJE/SMH - Octo-VistA SQL Mapper ;2024-06-25
+ ;;1.11;YOTTADB OCTO VISTA UTILITIES;;Sep 22, 2012
  ;
  ; Copyright (c) 2019-2024 YottaDB LLC
  ;
@@ -361,15 +361,17 @@ GETTYPE(ELEMENTIEN,COLUMNIEN)
  . S COLUMNSQLTYPE=COLUMNSQLTYPE_"("_LENGTH_")"
  ;
  ; Convert Date column to Timestamp if the column could contain time
- I COLUMNSQLTYPE="DATE",FMFILE,FMFIELD,$P(^DD(FMFILE,FMFIELD,0),U,5)["%DT=" D
- . ; Input transform
- . N IT S IT=$P(^DD(FMFILE,FMFIELD,0),U,5)
- . ; Extract %DT string
- . N QQ S QQ=$P($P(IT,"%DT=",2)," "),QQ=$P(QQ,",")
- . ; Remove quotes
- . N Q S Q=$E(QQ,2,$L(QQ)-1)
- . I Q["T" S COLUMNSQLTYPE="TIMESTAMP(FILEMAN)"
- . E  S COLUMNSQLTYPE="DATE(FILEMAN)"
+ I COLUMNSQLTYPE="DATE" D
+ . I FMFILE,FMFIELD,$P(^DD(FMFILE,FMFIELD,0),U,5)["%DT=" D ; We are trying to determine here if we have date or date/time
+ . . ; Input transform
+ . . N IT S IT=$P(^DD(FMFILE,FMFIELD,0),U,5)
+ . . ; Extract %DT string
+ . . N QQ S QQ=$P($P(IT,"%DT=",2)," "),QQ=$P(QQ,",")
+ . . ; Remove quotes
+ . . N Q S Q=$E(QQ,2,$L(QQ)-1)
+ . . I Q["T" S COLUMNSQLTYPE="TIMESTAMP(FILEMAN)"
+ . . E  S COLUMNSQLTYPE="DATE(FILEMAN)"
+ . E  S COLUMNSQLTYPE="TIMESTAMP(FILEMAN)" ; Ensure all DATE types are converted
  QUIT COLUMNSQLTYPE
  ;
  ; Convert computed expressions to be an extrinsic function
