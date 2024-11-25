@@ -69,8 +69,16 @@ the SQL dialect for specific use cases as follows.
 
 ## Date Functions
 ### `CURRTIMESTAMP/GETDATE(V/S/M)`
+THIS FUNCTION IS NOW REMOVED AS IT IS AVAILABLE IN OCTO.
+
 Returns today's date/time. Without any arguments, returns today's date in the
 $HOROLOG format. V: Fileman Format. S: US Format. M: $HOROLOG format.
+
+To perform the same operations in Octo:
+
+- V: `select timestamp_to_fileman(now()::timestamp);`
+- S: `select now()::date;` (outputs Octo default formatted date)
+- M: `select timestamp_to_horolog(now()::timestamp);`
 
 ### `DATEFORMAT(value, formatcode)`
 Formats datetime based on datetime type returns MM/DD/YYYY HH:MM:SS as default. Function Uses "5ZSP" for fileman dates unless formatcode is otherwise specified. If fileman date is detected function calls VA routine `$$FMTE^XLFDT(value,format)` to format

@@ -10,8 +10,9 @@
 #	the license, please stop and do not read further.	#
 #								#
 #################################################################
+-- These function are deprecated as they can be replaced with now() & variations
 DROP FUNCTION IF EXISTS CURRTIMESTAMP(varchar);
-CREATE FUNCTION CURRTIMESTAMP(varchar) RETURNS timestamp(fileman) as $$TIMESTAMP^%YDBOCTOVISTAF;
+DROP FUNCTION IF EXISTS GETDATE(varchar);
 
 DROP FUNCTION IF EXISTS DATEFORMAT(numeric);
 DROP FUNCTION IF EXISTS DATEFORMAT(numeric,varchar);
@@ -83,6 +84,3 @@ DROP FUNCTION IF EXISTS FMADD(timestamp(fileman),int,int,int,int);
 CREATE FUNCTION FMADD(numeric,int,int,int,int) RETURNS timestamp(fileman) as $$FMADD^%YDBOCTOVISTAF;
 CREATE FUNCTION FMADD(date(fileman),int,int,int,int) RETURNS timestamp(fileman) as $$FMADD^%YDBOCTOVISTAF;
 CREATE FUNCTION FMADD(timestamp(fileman),int,int,int,int) RETURNS timestamp(fileman) as $$FMADD^%YDBOCTOVISTAF;
-
-DROP FUNCTION IF EXISTS GETDATE(varchar);
-CREATE FUNCTION GETDATE(varchar) RETURNS INTEGER as $$TIMESTAMP^%YDBOCTOVISTAF;

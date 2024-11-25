@@ -70,17 +70,6 @@ PATINDEX(VALUE,SEARCHSTRING)
  I POSITION<0 S POSITION=0
  QUIT POSITION
  ;
- ; returns current date time in three different formats specified by TYPE
- ; TYPE("V") = VA Fileman formatted current datetime
- ; TYPE("S") = Current datetime in SQL Server format
- ; TYPE("M") = Current datetime in $HOROLOG format
-TIMESTAMP(TYPE)
- Q:$ZYISSQLNULL(TYPE) $ZYSQLNULL
- I TYPE="V"!(TYPE="v") QUIT $$NOW^XLFDT()
- I TYPE="S"!(TYPE="s") QUIT $ZD($H,"MM/DD/YYYY 24:60:60")
- I TYPE="M"!(TYPE="m") QUIT $H
- QUIT $H
- ;
  ; Interlude to FMDIFF^XLFDT, that handles SQL NULL
 FMDIFF(%1,%2,%3)
  Q:$ZYISSQLNULL(%1) $ZYSQLNULL
