@@ -54,6 +54,14 @@ be used with Octo to generate a mapping between Octo/SQL and FileMan files. You
 can change the `vista200.sql` argument to another filename or complete file
 path if required.
 
+## Mapping the Lab Chemistry Data
+Lab Chemistry data in VistA does not live in a Fileman File, and Fileman cannot
+access it. As such, SQLI cannot represent it, and previously it was not available
+in Octo. It's represented as nested pieces (outer `^` pieces, and then inner `!` 
+pieces).
+
+It's now supported in the SQL file `lab_chem_result.sql`.
+
 ## Troubleshooting
 If you get a crash at `SETOF+3^DMSQD`, this is caused by bad Fileman Data
 Dictionaries sent in patch `ECX*3.0*178`. See
