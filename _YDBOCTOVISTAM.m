@@ -1,7 +1,7 @@
-%YDBOCTOVISTAM ; YDB/CJE/SMH - Octo-VistA SQL Mapper ;2024-11-26
- ;;1.12;YOTTADB OCTO VISTA UTILITIES;;Sep 22, 2012
+%YDBOCTOVISTAM ; YDB/CJE/SMH - Octo-VistA SQL Mapper ;2026-07-16
+ ;;1.13;YOTTADB OCTO VISTA UTILITIES;;Jul 16, 2026
  ;
- ; Copyright (c) 2019-2024 YottaDB LLC
+ ; Copyright (c) 2019-2026 YottaDB LLC
  ;
  ; This program is free software: you can redistribute it and/or modify
  ; it under the terms of the GNU Affero General Public License as
@@ -257,7 +257,7 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  . . . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_" EXTRACT ""$$VARPTR^%YDBOCTOVISTAM($P($G("_TABLEOPENGLOBAL_COLUMNGLOBAL_"),""""^"""","_PIECE_"),"""""_VROOT_""""")"""
  . . . ;
  . . . I EXTRACTSTART D
- . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_" EXTRACT ""$E($G("_TABLEOPENGLOBAL_COLUMNGLOBAL_"),"_EXTRACTSTART_","_EXTRACTEND_")"""
+ . . . . S DDL(FILE,LINE)=DDL(FILE,LINE)_" SUBSTR "_EXTRACTSTART_"-"_EXTRACTEND_" GLOBAL "_QUOTE_TABLEOPENGLOBAL_COLUMNGLOBAL_QUOTE
  . . . I '$L(PIECE),'$L(EXTRACTSTART) D
  . . . . ; For whatever reason Word Processing fields aren't processed correctly
  . . . . ; Get the whole global node using DELIM ""
