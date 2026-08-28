@@ -1,7 +1,7 @@
 #!/bin/bash
 #################################################################
 #								#
-# Copyright (c) 2021-2024 YottaDB LLC and/or its subsidiaries.	#
+# Copyright (c) 2021-2026 YottaDB LLC and/or its subsidiaries.	#
 # All rights reserved.						#
 #								#
 #	This source code contains the intellectual property	#
@@ -47,4 +47,4 @@ git clone https://gitlab.com/YottaDB/DBMS/YDBOcto.git
 mkdir YDBOcto/build
 cd YDBOcto/build
 cmake3 -D TEST_VISTA=ON -D TEST_VISTA_ENV_FILE="~vehu/etc/env" -D TEST_VISTA_INPUT_M="~vehu/r/_YDBOCTOVISTAM.m" -D TEST_VISTA_INPUT_F_SQL="~vehu/_YDBOCTOVISTAF.sql" -D TEST_VISTA_INPUT_SQL="~vehu/vista.sql" ..
-bats -T bats_tests/test_vista_database.bats
+bats -T bats_tests/vista_database.bats
