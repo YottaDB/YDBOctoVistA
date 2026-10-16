@@ -1,5 +1,5 @@
-%YDBOCTOVISTAM ; YDB/CJE/SMH - Octo-VistA SQL Mapper ;2026-07-16
- ;;1.13;YOTTADB OCTO VISTA UTILITIES;;Jul 16, 2026
+%YDBOCTOVISTAM ; YDB/CJE/SMH - Octo-VistA SQL Mapper ;2026-10-16
+ ;;1.14;YOTTADB OCTO VISTA UTILITIES;;Oct 16, 2026
  ;
  ; Copyright (c) 2019-2026 YottaDB LLC
  ;
@@ -306,11 +306,9 @@ MAPTABLE(TABLEIEN,SCHEMA,LINE)
  ; DELIM will always be "^" as that is what FileMan uses by default
  ; Yes, some tables break FileMan conventions and store more data per column that FileMan has no idea about
  ; at the moment those parts are not important.
- S DDL(FILE,LINE)="DELIM ""^"""
- S LINE=LINE+1
- ;
- ; v1.4: Add AIM Metadata Type 1
- S DDL(FILE,LINE)="AIMTYPE 1;"
+ ; v1.14: no AIMTYPE. Octo chooses the AIM cross reference type from the table's DDL definition
+ ; (YottaDB/Util/YDBAIM#96), so the DELIM line closes the statement.
+ S DDL(FILE,LINE)="DELIM ""^"";"
  S LINE=LINE+1
  ;
  ; Add empty line so that we can see where one table ends and another starts
